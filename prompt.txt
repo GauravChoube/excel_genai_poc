@@ -12,6 +12,11 @@ Create python project or file with followin details.
     5. Finally, add main function with ask for input file , read input excel file into dataframe , process operation function and updatee same excel file with updated dataframe.
     6. Dont provide any example and description in python file just normal comments.
     7. Python file must be executable. Recheck the structure, indentation, and extra mark,symbol and remove it if not require.
+<<<<<<< HEAD
     8. Observation is excel file is getting corrupted after above operation.Resolve the issue with code.Take care of such problem should not occurred.
 	9. Update the original .xlsm file with the modified DataFrame while retaining all macros, formatting, and workbook structure. Avoid using methods that corrupt or remove the macros.
     10.Dont add '```python' while creating python file.
+=======
+    8. Dont add '```python' at start of python file.
+    9. Observation is excel file is getting corrupted after above operation.Resolve the issue with code.Take care of such problem should not occurred.
+>>>>>>> 373c1ac035fb1e807d40eab54155f05e67e50f22

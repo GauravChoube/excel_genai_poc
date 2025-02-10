@@ -1,0 +1,6 @@
+{
+    "openaiKey":"",
+    "openaiEndPoint":"https://excelpocopenai.openai.azure.com/",
+    "openaiVersion":"2024-05-01-preview",
+    "model":"gpt-4o"
+}
