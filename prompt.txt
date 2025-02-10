@@ -1,0 +1,16 @@
+Convert the VBA script from excel file to python script is main objective here.
+There are list of VBA script module enclose with ''' and seperated by '\n\n' from each other.
+Create python project or file with followin details.
+    1. Create python project or file based on data complexity from VBA script model  with class name as 'ConvertedExcelMacros'.
+    2. Add constructor with input data is  dataframe object as argument which is used with converted python function.
+    3. Convert the each model into python equivalent function and add into above class with following point to be consider.
+        a. Check for dependecies and respetive library require in python and add at top of file.
+        b. Check indentation and syntax error.
+        c. if failed to convert , then create function with description and add log statement about error when this function get call
+    
+    4. Add operation function to this call which ask user to select operation based on python function available and execute the selected python function with excel file data present in dataframe.
+    5. Finally, add main function with ask for input file , read input excel file into dataframe , process operation function and updatee same excel file with updated dataframe.
+    6. Dont provide any example and description in python file just normal comments.
+    7. Python file must be executable. Recheck the structure, indentation, and extra mark,symbol and remove it if not require.
+    8. Dont add '```python' at start of python file.
+    9. Observation is excel file is getting corrupted after above operation.Resolve the issue with code.Take care of such problem should not occurred.
