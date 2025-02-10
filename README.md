@@ -30,3 +30,4 @@ Setup the config file with openAI credential into file 'config.json'.
 ```
 python main.py
 ```
+Note: Update the prompt in prompt.txt based on runtime error.
