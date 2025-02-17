@@ -1,23 +1,3 @@
-class OPENAI_CLIENT:
-    def __init__(self,apiKey,endPoint):
-        pass
-
-    def setup():
-        pass
-        
-    def call(promt,code):
-        pass
-        
-
-        
-    def test():
-        pass
-
-if __name__ == '__main__':
-    obj = OPENAI_CLIENT()
-    obj.call()
-
-
 import os
 import win32com.client
 from openpyxl import load_workbook
