@@ -1,0 +1,126 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Excel File</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        #logMessages {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fff;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+</head>
+<body>
+    <h1>Upload Excel File</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+    <div id="logMessages"></div>
+
+    <script>
+        const socket = io();
+
+        socket.on('log', function(data) {
+            const logDiv = document.getElementById('logMessages');
+            logDiv.innerHTML += `<p>${data.message}</p>`;
+            logDiv.scrollTop = logDiv.scrollHeight; // Auto-scroll to the bottom
+        });
+
+        document.getElementById('uploadForm').onsubmit = function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    socket.emit('log', { message: `❌ ${data.error}` });
+                } else if (data.success && data.redirect) {
+                    window.location.href = data.redirect; 
+                }
+            })
+            .catch(error => {
+                socket.emit('log', { message: `❌ Error: ${error.message}` });
+            });
+        };
+    </script>
+</body>
+
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Excel File</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        #logMessages {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fff;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+</head>
+<body>
+    <h1>Upload Excel File</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+    <div id="logMessages"></div>
+
+    <script>
+        const socket = io();
+
+        socket.on('log', function(data) {
+            const logDiv = document.getElementById('logMessages');
+            logDiv.innerHTML += `<p>${data.message}</p>`;
+            logDiv.scrollTop = logDiv.scrollHeight; 
+        });
+
+        document.getElementById('uploadForm').onsubmit = function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    socket.emit('log', { message: `❌ ${data.error}` });
+                } else if (data.success && data.redirect) {
+               
+                    window.location.href = data.redirect; 
+                }
+            })
+            .catch(error => {
+                socket.emit('log', { message: `❌ Error: ${error.message}` });
+            });
+        };
+    </script>
+</body>
+</html>
