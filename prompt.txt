@@ -1,19 +1,16 @@
-Convert the VBA script from excel file to python script is main objective here.
-There are list of VBA script module enclose with ''' and seperated by '\n\n' from each other.
-Create python project or file with followin details.
-    1. Create python project or file based on data complexity from VBA script model  with class name as 'ConvertedExcelMacros'.
-    2. Add constructor with input data is  dataframe object as argument which is used with converted python function.
-    3. Convert the each model into python equivalent function and add into above class with following point to be consider.
-        a. Check for dependecies and respetive library require in python and add at top of file.
-        b. Check indentation and syntax error.
-        c. if failed to convert , then create function with description and add log statement about error when this function get call
-    
-    4. Add operation function to this call which ask user to select operation based on python function available and execute the selected python function with excel file data present in dataframe.
-    5. Finally, add main function with ask for input file , read input excel file into dataframe , process operation function and updatee same excel file with updated dataframe.
-    6. Dont provide any example and description in python file just normal comments.
-    7. Python file must be executable. Recheck the structure, indentation, and extra mark,symbol and remove it if not require.
-    8. Observation is excel file is getting corrupted after above operation.Resolve the issue with code.Take care of such problem should not occurred.
-	9. Update the original .xlsm file with the modified DataFrame while retaining all macros, formatting, and workbook structure. Avoid using methods that corrupt or remove the macros.
-    10. Dont add '```python' while creating python file.
+Convert the VBA script from an Excel file to a Python-based API is the main objective here. There are a list of VBA script modules enclosed with ''' and separated by '\n\n' from each other. Create a Python project or file with the following details:
 
-   
+1. Create a Python project or file based on the data complexity from the VBA script model with the class name as 'ConvertedExcelMacrosAPI'.
+2. Add a constructor with input data as a DataFrame object as an argument, which is used with the converted Python functions.
+3. Convert each module into Python equivalent functions and add them into the above class with the following points to be considered:
+   a. Check for dependencies and respective libraries required in Python and add them at the top of the file.
+   b. Check indentation and syntax errors.
+   c. If conversion fails, create a function with a description and add a log statement about the error when this function gets called.
+4. Create an API endpoint that allows users to select an operation based on the available Python functions and execute the selected function with the Excel file data present in the DataFrame.
+5. Finally, add a main function that asks for an input file, reads the input Excel file into a DataFrame, processes the API operation, and updates the same Excel file with the modified DataFrame.
+6. Do not provide any examples or descriptions in the Python file, just normal comments.
+7. The Python file must be executable. Recheck the structure, indentation, and remove any unnecessary marks or symbols.
+8. Do not add '```python' at the start of the Python file.
+9. Ensure that the Excel file is not corrupted after the above operations. Resolve any issues that may cause corruption.
+10. Update the original .xlsm file with the modified DataFrame while retaining all macros, formatting, and workbook structure. Avoid using methods that corrupt or remove the macros.
+11. Ensure to use openpyxl or similar libraries that support .xlsm files to maintain the integrity of the workbook.
