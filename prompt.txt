@@ -1,16 +1,39 @@
-Convert the VBA script from excel file to python script is main objective here.
-There are list of VBA script module enclose with ''' and seperated by '\n\n' from each other.
-Create python project or file with followin details.
-    1. Create python project or file based on data complexity from VBA script model  with class name as 'ConvertedExcelMacros'.
-    2. Add constructor with input data is  dataframe object as argument which is used with converted python function.
-    3. Convert the each model into python equivalent function and add into above class with following point to be consider.
-        a. Check for dependecies and respetive library require in python and add at top of file.
-        b. Check indentation and syntax error.
-        c. if failed to convert , then create function with description and add log statement about error when this function get call
-    
-    4. Add operation function to this call which ask user to select operation based on python function available and execute the selected python function with excel file data present in dataframe.
-    5. Finally, add main function with ask for input file , read input excel file into dataframe , process operation function and updatee same excel file with updated dataframe.
-    6. Dont provide any example and description in python file just normal comments.
-    7. Python file must be executable. Recheck the structure, indentation, and extra mark,symbol and remove it if not require.
-    8. Dont add '```python' at start of python file.
-    9. Observation is excel file is getting corrupted after above operation.Resolve the issue with code.Take care of such problem should not occurred.
+Convert the VBA script from the Excel file to a Python script. The main objective here is to create a Flask API with the following endpoints within the same class, 'ConvertedExcelMacros':
+
+1. **/execute_macro**: This endpoint should accept a JSON payload with the name of the macro to execute and the uploaded Excel file. It should execute the specified macro on the provided Excel file and return the result. Ensure that the macro is executed in the context of the provided DataFrame.
+
+2. **/view_data**: This endpoint should accept an uploaded Excel file and return the data from the file as a JSON response. It should also include the names of all sheets in the Excel file. The response should be structured to show the sheet names and the corresponding data.
+
+3. **/existing_macros**: This endpoint should accept an uploaded Excel file and return a list of all existing macros in that file. The response should be a JSON array containing the names of the macros.
+
+Additional Requirements:
+- Create a Python project or file with the class name as 'ConvertedExcelMacros'.
+- Add a constructor that can optionally take a DataFrame object as an argument, which is used with the converted Python functions. The constructor should also allow for instantiation without a DataFrame.
+- Convert each VBA module into a Python equivalent function and add it to the above class, considering the following points:
+  a. Check for dependencies and respective libraries required in Python and add them at the top of the file.
+  b. Ensure proper indentation and syntax.
+  c. If conversion fails, create a function with a description and add a log statement about the error when this function is called.
+  
+- Implement the following methods in the class:
+  - `view_data(file_path)`: Returns the data along with sheet names from the uploaded Excel file.
+  - `existing_macros(file_path)`: Returns a list of existing macros in uploaded Excel file.
+  - `execute_macro(file_path, macro_name)`: Executes a specified macro.
+  
+- Ensure that the API is executable and can handle requests properly.
+- Maintain the integrity of the Excel file, ensuring it is not corrupted after operations. Use libraries like `openpyxl` that support `.xlsm` files to retain macros, formatting, and workbook structure.
+- Ensure that the original `.xlsm` file is updated with the modified DataFrame while retaining all macros and formatting.
+- Do not provide any examples or descriptions in the Python file, just normal comments.
+- Recheck the structure, indentation, and remove any unnecessary marks or symbols.
+- Dont add '```python' while creating python file.
+
+File Handling Instructions:
+- When a file is uploaded, save it temporarily on the server for processing.
+- Ensure that the temporary file is deleted after processing to avoid clutter.
+- Handle any potential errors during file operations gracefully, returning appropriate error messages to the user.
+- Use unique filenames for temporary files to prevent conflicts when multiple users upload files simultaneously.
+
+Note:
+- The API should be able to handle concurrent requests and manage the state of the uploaded Excel file appropriately.
+- Ensure that the Excel file is not corrupted after the above operations. Resolve any issues that may cause corruption.
+- Update the original .xlsm file with the modified DataFrame while retaining all macros, formatting, and workbook structure. Avoid using methods that corrupt or remove the macros.
+- Ensure to use openpyxl or similar libraries that support .xlsm files to maintain the integrity of the workbook.
