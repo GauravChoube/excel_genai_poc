@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Macro Executor</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="file"], input[type="text"] {
+            margin: 10px 0;
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        h2 {
+            margin-top: 20px;
+        }
+        pre {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Excel Macro Executor</h1>
+    </header>
+    <div class="container">
+        <input type="file" id="fileInput" accept=".xlsm" />
+        <input type="text" id="macroName" placeholder="Enter Macro Name" />
+        <button id="uploadBtn">Upload</button>
+        <button id="viewDataBtn">View Data</button>
+        <button id="existingMacrosBtn">Existing Macros</button>
+        <button id="executeMacroBtn">Execute Macro</button>
+        
+        <h2>Response</h2>
+        <pre id="responseOutput"></pre>
+    </div>
+
+    <script>
+        function handleResponse(response) {
+            $('#responseOutput').text(JSON.stringify(response, null, 2));
+        }
+        
+        function handleError(error) {
+            $('#responseOutput').text(JSON.stringify(error.responseJSON || {"error": "Unknown error"}, null, 2));
+        }
+        
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) return alert("Please select a file");
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: handleResponse,
+                error: handleError
+            });
+        }
+        
+        // function viewData() {
+        //     const fileInput = document.getElementById('fileInput');
+        //     if (!fileInput.files.length) return alert("Please select a file");
+        //     const formData = new FormData();
+        //     formData.append('file', fileInput.files[0]);
+            
+        //     $.ajax({
+        //         url: '/view_data',
+        //         type: 'POST',
+        //         data: formData,
+        //         processData: false,
+        //         contentType: false,
+        //         success: handleResponse,
+        //         error: handleError
+        //     });
+        // }
+        function viewData() {
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files.length) return alert("Please select a file");
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    // Clear previous output
+    $('#responseOutput').text('');
+
+    $.ajax({
+        url: '/view_data',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            // Display the JSON response directly
+            $('#responseOutput').text(JSON.stringify(response, null, 2));
+        },
+        error: function(error) {
+            // Display error message
+            $('#responseOutput').text(JSON.stringify(error.responseJSON || {"error": "Unknown error"}, null, 2));
+        }
+    });
+}
+        
+        function existingMacros() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) return alert("Please select a file");
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            $.ajax({
+                url: '/existing_macros',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: handleResponse,
+                error: handleError
+            });
+        }
+        
+        function executeMacro() {
+            const fileInput = document.getElementById('fileInput');
+            const macroName = document.getElementById('macroName').value.trim();
+            if (!fileInput.files.length) return alert("Please select a file");
+            if (!macroName) return alert("Please enter a macro name");
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('macro_name', macroName);
+            
+            $.ajax({
+                url: '/execute_macro',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: handleResponse,
+                error: handleError
+            });
+        }
+        
+        document.getElementById('uploadBtn').onclick = uploadFile;
+        document.getElementById('viewDataBtn').onclick = viewData;
+        document.getElementById('existingMacrosBtn').onclick = existingMacros;
+        document.getElementById('executeMacroBtn').onclick = executeMacro;
+    </script>
+</body>
+</html>
