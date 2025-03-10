@@ -57,6 +57,17 @@
             border-radius: 5px;
             overflow: auto;
         }
+        .macro-item {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .macro-item:hover {
+            background-color: #d6d6d6;
+        }
     </style>
 </head>
 <body>
@@ -65,18 +76,19 @@
     </header>
     <div class="container">
         <input type="file" id="fileInput" accept=".xlsm" />
-        <input type="text" id="macroName" placeholder="Enter Macro Name" />
+
         <button id="uploadBtn">Upload</button>
         <button id="viewDataBtn">View Data</button>
         <button id="existingMacrosBtn">Existing Macros</button>
         <button id="executeMacroBtn">Execute Macro</button>
         
         <h2>Response</h2>
-        <pre id="responseOutput"></pre>
+        <div id="responseOutput"></div>
     </div>
 
     <script>
         function handleResponse(response) {
+            console.log("Response Data:", response); // Log the entire response for debugging
             $('#responseOutput').text(JSON.stringify(response, null, 2));
         }
         
@@ -101,48 +113,48 @@
             });
         }
         
-        // function viewData() {
-        //     const fileInput = document.getElementById('fileInput');
-        //     if (!fileInput.files.length) return alert("Please select a file");
-        //     const formData = new FormData();
-        //     formData.append('file', fileInput.files[0]);
-            
-        //     $.ajax({
-        //         url: '/view_data',
-        //         type: 'POST',
-        //         data: formData,
-        //         processData: false,
-        //         contentType: false,
-        //         success: handleResponse,
-        //         error: handleError
-        //     });
-        // }
         function viewData() {
-    const fileInput = document.getElementById('fileInput');
-    if (!fileInput.files.length) return alert("Please select a file");
-
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-
-    // Clear previous output
-    $('#responseOutput').text('');
-
-    $.ajax({
-        url: '/view_data',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            // Display the JSON response directly
-            $('#responseOutput').text(JSON.stringify(response, null, 2));
-        },
-        error: function(error) {
-            // Display error message
-            $('#responseOutput').text(JSON.stringify(error.responseJSON || {"error": "Unknown error"}, null, 2));
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) return alert("Please select a file");
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            $.ajax({
+                url: '/view_data',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log("Response Data:", response); // Log the entire response
+                    let output = '';
+                    for (const [sheet, rows] of Object.entries(response.data)) {
+                        output += `<h3>Sheet: ${sheet}</h3>`;
+                        if (rows.length > 0) {
+                            output += `<table border="1"><tr>`;
+                            // Add table headers
+                            Object.keys(rows[0]).forEach(key => {
+                                output += `<th>${key}</th>`;
+                            });
+                            output += `</tr>`;
+                            // Add table rows
+                            rows.forEach(row => {
+                                output += `<tr>`;
+                                Object.values(row).forEach(value => {
+                                    output += `<td>${value}</td>`;
+                                });
+                                output += `</tr>`;
+                            });
+                            output += `</table>`;
+                        } else {
+                            output += `<p>No Data</p>`;
+                        }
+                    }
+                    $('#responseOutput').html(output);
+                },
+                error: handleError
+            });
         }
-    });
-}
         
         function existingMacros() {
             const fileInput = document.getElementById('fileInput');
@@ -156,16 +168,27 @@
                 data: formData,
                 processData: false,
                 contentType: false,
-                success: handleResponse,
+                success: function(response) {
+                    console.log("Existing Macros:", response); // Log the response for debugging
+                    let output = '<h3>Select a Macro to Execute:</h3>';
+                    if (response.macros && response.macros.length > 0) {
+                        response.macros.forEach(macro => {
+                            output += `<div class="macro-item" onclick="executeMacro('${macro}')">${macro}</div>`;
+                        });
+                    } else {
+                        output += '<p>No existing macros found.</p>';
+                    }
+                    $('#responseOutput').html(output);
+                },
                 error: handleError
             });
         }
         
-        function executeMacro() {
+        function executeMacro(macroName) {
             const fileInput = document.getElementById('fileInput');
-            const macroName = document.getElementById('macroName').value.trim();
             if (!fileInput.files.length) return alert("Please select a file");
-            if (!macroName) return alert("Please enter a macro name");
+            if (!macroName) return alert("No macro selected");
+            
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('macro_name', macroName);
@@ -184,7 +207,14 @@
         document.getElementById('uploadBtn').onclick = uploadFile;
         document.getElementById('viewDataBtn').onclick = viewData;
         document.getElementById('existingMacrosBtn').onclick = existingMacros;
-        document.getElementById('executeMacroBtn').onclick = executeMacro;
+        document.getElementById('executeMacroBtn').onclick = function() {
+            const macroName = document.getElementById('macroName').value.trim();
+            if (macroName) {
+                executeMacro(macroName);
+            } else {
+                alert("Please select a macro from the list or enter a macro name.");
+            }
+        };
     </script>
 </body>
 </html>
