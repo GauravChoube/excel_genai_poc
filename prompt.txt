@@ -2,9 +2,7 @@ Convert the VBA script from the Excel file to a Python script. The main objectiv
 
 1. **/execute_macro**: This endpoint should accept a JSON payload with the name of the macro to execute and the uploaded Excel file. It should execute the specified macro on the provided Excel file and return the result. Ensure that the macro is executed in the context of the provided DataFrame.
 
-2. **/view_data**: This endpoint should accept an uploaded Excel file and return the data from the file as a JSON response. It should also include the names of all sheets in the Excel file. The response should be structured to show the sheet names and the corresponding data.
-
-3. **/existing_macros**: This endpoint should accept an uploaded Excel file and return a list of all existing macros in that file. The response should be a JSON array containing the names of the macros.
+2. **/existing_macros**: This endpoint should accept an uploaded Excel file and return a list of all existing macros in that file. The response should be a JSON array containing the names of the macros.
 
 Additional Requirements:
 - Create a Python project or file with the class name as 'ConvertedExcelMacros'.
@@ -15,7 +13,6 @@ Additional Requirements:
   c. If conversion fails, create a function with a description and add a log statement about the error when this function is called.
   
 - Implement the following methods in the class:
-  - `view_data(file_path)`: Returns the data along with sheet names from the uploaded Excel file.
   - `existing_macros(file_path)`: Returns a list of existing macros in uploaded Excel file.
   - `execute_macro(file_path, macro_name)`: Executes a specified macro.
   
@@ -34,6 +31,6 @@ File Handling Instructions:
 
 Note:
 - The API should be able to handle concurrent requests and manage the state of the uploaded Excel file appropriately.
-- Ensure that the Excel file is not corrupted after the above operations. Resolve any issues that may cause corruption.
+- Ensure that the Excel file is not corrupted after the above operations. Resolve any issues that may cause corruption to the file.
 - Update the original .xlsm file with the modified DataFrame while retaining all macros, formatting, and workbook structure. Avoid using methods that corrupt or remove the macros.
 - Ensure to use openpyxl or similar libraries that support .xlsm files to maintain the integrity of the workbook.
