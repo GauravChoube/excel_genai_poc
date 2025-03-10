@@ -109,21 +109,18 @@ def view_data():
         excel_file_path = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(excel_file_path)
 
-        # Dynamically import the ConvertedExcelMacros class
-        spec = importlib.util.spec_from_file_location("ConvertedExcelMacros", "converted_macros.py")
-        converted_macros_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(converted_macros_module)
+        # Read the Excel file using pandas
+        excel_data = pd.ExcelFile(excel_file_path)
+        data = {}
+        for sheet_name in excel_data.sheet_names:
+            data[sheet_name] = excel_data.parse(sheet_name).to_dict(orient='records')
 
-        # Create an instance of the ConvertedExcelMacros class
-        macros_instance = converted_macros_module.ConvertedExcelMacros(excel_file_path)
-        
-        # Call the view_data method without any arguments
-        result = macros_instance.view_data(excel_file_path)
-
-        return jsonify(result)  # Return the result directly
+        logging.info(f"Data retrieved from {file.filename}: {data}")  # Log the data for debugging
+        return jsonify({"data": data, "sheets": excel_data.sheet_names}), 200
     except Exception as e:
         logging.error(f"Error in view_data: {e}")
         return jsonify({"error": "Failed to read data. See server logs for details."}), 500
+
     
 @app.route('/existing_macros', methods=['POST'])
 def existing_macros():
