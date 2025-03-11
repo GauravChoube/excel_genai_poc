@@ -99,27 +99,113 @@ def upload_file():
 #     except Exception as e:
 #         logging.error(f"Error in view_data: {e}")
 #         return jsonify({"error": "Failed to read data. See server logs for details."}), 500
+# @app.route('/view_data', methods=['POST'])
+# def view_data():
+#     # Get the filename from the request
+#     filename = request.form.get('filename')
+#     if not filename:
+#         return jsonify({"error": "Filename is required."}), 400
+
+#     try:
+#         excel_file_path = os.path.join(UPLOAD_FOLDER, filename)
+
+#         # Read the Excel file using pandas
+#         excel_data = pd.ExcelFile(excel_file_path)
+#         data = {}
+#         for sheet_name in excel_data.sheet_names:
+#             data[sheet_name] = excel_data.parse(sheet_name).to_dict(orient='records')
+
+#         logging.info(f"Data retrieved from {filename}: {data}")  # Log the data for debugging
+#         return jsonify({"data": data, "sheets": excel_data.sheet_names}), 200
+#     except Exception as e:
+#         logging.error(f"Error in view_data: {e}")
+#         return jsonify({"error": "Failed to read data. See server logs for details."}), 500
 @app.route('/view_data', methods=['POST'])
 def view_data():
-    file = request.files.get('file')
-    if not file:
-        return jsonify({"error": "File is required."}), 400
-
+    filename = request.form.get('filename')
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
     try:
-        excel_file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(excel_file_path)
-
-        # Read the Excel file using pandas
-        excel_data = pd.ExcelFile(excel_file_path)
+        excel_data = pd.ExcelFile(file_path)
         data = {}
         for sheet_name in excel_data.sheet_names:
             data[sheet_name] = excel_data.parse(sheet_name).to_dict(orient='records')
-
-        logging.info(f"Data retrieved from {file.filename}: {data}")  # Log the data for debugging
-        return jsonify({"data": data, "sheets": excel_data.sheet_names}), 200
+        return jsonify({"sheets": excel_data.sheet_names, "data": data}), 200
     except Exception as e:
-        logging.error(f"Error in view_data: {e}")
-        return jsonify({"error": "Failed to read data. See server logs for details."}), 500
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/add_row', methods=['POST'])
+def add_row():
+    filename = request.form['filename']
+    new_row = json.loads(request.form['newRow'])  
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+
+    try:
+        # Load the existing data
+        excel_data = pd.ExcelFile(file_path)
+        sheet_name = excel_data.sheet_names[0] 
+        df = excel_data.parse(sheet_name)
+
+        # Create a DataFrame for the new row
+        new_row_df = pd.DataFrame([new_row])  
+
+        # Concatenate the new row DataFrame with the existing DataFrame
+        df = pd.concat([df, new_row_df], ignore_index=True)
+
+        # Save the updated DataFrame back to the Excel file
+        with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        return jsonify({"message": "Row added successfully"}), 200
+    except Exception as e:
+        print(f"Error adding row: {e}")  # Log the error for debugging
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/delete_row', methods=['POST'])
+def delete_row():
+    filename = request.form['filename']
+    row_index = int(request.form['rowIndex'])
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+
+    try:
+        # Load the existing data
+        excel_data = pd.ExcelFile(file_path)
+        sheet_name = excel_data.sheet_names[0]  # Assuming you want to delete from the first sheet
+        df = excel_data.parse(sheet_name)
+
+        # Drop the specified row
+        df = df.drop(index=row_index)
+
+        # Save the updated DataFrame back to the Excel file
+        with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        return jsonify({"message": "Row deleted successfully"}), 200
+    except Exception as e:
+        print(f"Error deleting row: {e}")  
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/update_row', methods=['POST'])
+def update_row():
+    filename = request.form['filename']
+    row_index = int(request.form['rowIndex'])
+    updated_row = json.loads(request.form['updatedRow'])
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+
+    try:
+        excel_data = pd.ExcelFile(file_path)
+        sheet_name = excel_data.sheet_names[0]
+        df = excel_data.parse(sheet_name)
+
+        for key, value in updated_row.items():
+            df.at[row_index, key] = value
+
+        with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        return jsonify({"message": "Row updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
     
 @app.route('/existing_macros', methods=['POST'])
