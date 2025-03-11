@@ -28,5 +28,5 @@ Setup the config file with openAI credential into file 'config.json'.
 
 ### run
 ```
-python main.py
+python app.py
 ```
