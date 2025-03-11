@@ -68,6 +68,38 @@
         .macro-item:hover {
             background-color: #d6d6d6;
         }
+        .tab {
+            display: inline-block;
+            padding: 10px;
+            cursor: pointer;
+            background-color: #e9ecef;
+            margin-right: 5px;
+            border-radius: 5px;
+        }
+        .tab.active {
+            background-color: #28a745;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            margin-top: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Table styles */
+        table {
+            border-collapse: collapse; /* Ensures that borders are collapsed into a single border */
+            width: 100%; /* Makes the table take the full width of its container */
+        }
+        th, td {
+            border: 2px solid #28a745; /* Change the border color and width */
+            padding: 10px; /* Adds padding inside the cells */
+            text-align: left; /* Aligns text to the left */
+        }
+        th {
+            background-color: #f2f2f2; /* Light gray background for header cells */
+        }
     </style>
 </head>
 <body>
@@ -76,26 +108,110 @@
     </header>
     <div class="container">
         <input type="file" id="fileInput" accept=".xlsm" />
-
         <button id="uploadBtn">Upload</button>
         <button id="viewDataBtn">View Data</button>
         <button id="existingMacrosBtn">Existing Macros</button>
-        <button id="executeMacroBtn">Execute Macro</button>
         
         <h2>Response</h2>
         <div id="responseOutput"></div>
     </div>
 
     <script>
+        let uploadedFileName = '';
+        let currentSheetData = {}; // Store current sheet data for editing
+
         function handleResponse(response) {
             console.log("Response Data:", response); // Log the entire response for debugging
-            $('#responseOutput').text(JSON.stringify(response, null, 2));
+            $('#responseOutput').empty(); // Clear previous output
+            if (response.sheets && response.data) {
+                currentSheetData = response.data; // Store the data for editing
+                createTabs(response.sheets, response.data);
+            } else {
+                $('#responseOutput'). text(JSON.stringify(response, null, 2));
+            }
         }
-        
+
+        function createTabs(sheets, data) {
+            const tabContainer = $('<div></div>');
+            sheets.forEach(sheet => {
+                const tab = $(`<div class="tab">${sheet}</div>`);
+                tab.on('click', function() {
+                    $('.tab').removeClass('active');
+                    $(this).addClass('active');
+                    showSheetData(sheet, data[sheet]);
+                });
+                tabContainer.append(tab);
+            });
+            $('#responseOutput').append(tabContainer);
+            if (sheets.length > 0) {
+                tabContainer.children().first().addClass('active');
+                showSheetData(sheets[0], data[sheets[0]]);
+            }
+        }
+
+        function showSheetData(sheetName, rows) {
+            const contentDiv = $('<div class="tab-content"></div>');
+            if (rows.length > 0) {
+                const table = $('<table></table>');
+                const headerRow = $('<tr></tr>');
+                Object.keys(rows[0]).forEach(key => {
+                    headerRow.append(`<th>${key}</th>`);
+                });
+                headerRow.append('<th>Actions</th>');
+                table.append(headerRow);
+                rows.forEach((row, index) => {
+                    const dataRow = $('<tr></tr>');
+                    Object.values(row).forEach(value => {
+                        dataRow.append(`<td contenteditable="true">${value}</td>`);
+                    });
+                    dataRow.append(`<td><button onclick="deleteRow(${index})">Delete</button></td>`);
+                    table.append(dataRow);
+                });
+                contentDiv.append(table);
+                contentDiv.append(createAddRowForm());
+            } else {
+                contentDiv.append('<p>No Data</p>');
+            }
+            $('.tab-content').remove();
+            $('#responseOutput').append(contentDiv);
+            contentDiv.addClass('active');
+        }
+
+        function createAddRowForm() {
+            const form = $('<div></div>');
+            const inputFields = Object.keys(currentSheetData[Object.keys(currentSheetData)[0]][0]).map(key => {
+                return `<input type="text" placeholder="Enter ${key}" class="new-row-input" />`;
+            }).join('');
+            form.append(inputFields);
+            form.append('<button onclick="addRow()">Add Row</button>');
+            return form;
+        }
+
+        function addRow() {
+            const newRow = {};
+            $('.new-row-input').each(function(index) {
+                const key = Object.keys(currentSheetData[Object.keys(currentSheetData)[0]][0])[index];
+                newRow[key] = $(this).val();
+            });
+            console.log("New Row Data:", newRow);
+            $.post('/add_row', { filename: uploadedFileName, newRow: JSON.stringify(newRow) }, function(response) {
+                viewData();
+            }).fail(function(jqXHR) {
+                console.error("Error adding row:", jqXHR.responseText);
+            });
+        }
+
+        function deleteRow(index) {
+            console.log("Delete Row Index:", index);
+            $.post('/delete_row', { filename: uploadedFileName, rowIndex: index }, function(response) {
+                viewData();
+            });
+        }
+
         function handleError(error) {
             $('#responseOutput').text(JSON.stringify(error.responseJSON || {"error": "Unknown error"}, null, 2));
         }
-        
+
         function uploadFile() {
             const fileInput = document.getElementById('fileInput');
             if (!fileInput.files.length) return alert("Please select a file");
@@ -108,16 +224,19 @@
                 data: formData,
                 processData: false,
                 contentType: false,
-                success: handleResponse,
+                success: function(response) {
+                    handleResponse(response);
+                    uploadedFileName = fileInput.files[0].name;
+                },
                 error: handleError
             });
         }
-        
+
         function viewData() {
-            const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) return alert("Please select a file");
+            if (!uploadedFileName) return alert("Please upload a file first");
+    
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            formData.append('filename', uploadedFileName); 
             
             $.ajax({
                 url: '/view_data',
@@ -125,33 +244,7 @@
                 data: formData,
                 processData: false,
                 contentType: false,
-                success: function(response) {
-                    console.log("Response Data:", response); // Log the entire response
-                    let output = '';
-                    for (const [sheet, rows] of Object.entries(response.data)) {
-                        output += `<h3>Sheet: ${sheet}</h3>`;
-                        if (rows.length > 0) {
-                            output += `<table border="1"><tr>`;
-                            // Add table headers
-                            Object.keys(rows[0]).forEach(key => {
-                                output += `<th>${key}</th>`;
-                            });
-                            output += `</tr>`;
-                            // Add table rows
-                            rows.forEach(row => {
-                                output += `<tr>`;
-                                Object.values(row).forEach(value => {
-                                    output += `<td>${value}</td>`;
-                                });
-                                output += `</tr>`;
-                            });
-                            output += `</table>`;
-                        } else {
-                            output += `<p>No Data</p>`;
-                        }
-                    }
-                    $('#responseOutput').html(output);
-                },
+                success: handleResponse,
                 error: handleError
             });
         }
@@ -169,7 +262,7 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    console.log("Existing Macros:", response); // Log the response for debugging
+                    console.log ("Existing Macros:", response); // Log the response for debugging
                     let output = '<h3>Select a Macro to Execute:</h3>';
                     if (response.macros && response.macros.length > 0) {
                         response.macros.forEach(macro => {
@@ -207,14 +300,7 @@
         document.getElementById('uploadBtn').onclick = uploadFile;
         document.getElementById('viewDataBtn').onclick = viewData;
         document.getElementById('existingMacrosBtn').onclick = existingMacros;
-        document.getElementById('executeMacroBtn').onclick = function() {
-            const macroName = document.getElementById('macroName').value.trim();
-            if (macroName) {
-                executeMacro(macroName);
-            } else {
-                alert("Please select a macro from the list or enter a macro name.");
-            }
-        };
+
     </script>
 </body>
 </html>
