@@ -136,17 +136,17 @@ def view_data():
 @app.route('/add_row', methods=['POST'])
 def add_row():
     filename = request.form['filename']
-    new_row = json.loads(request.form['newRow'])  
+    new_row = json.loads(request.form['newRow'])  # Ensure this is a valid JSON string
     file_path = os.path.join(UPLOAD_FOLDER, filename)
 
     try:
         # Load the existing data
         excel_data = pd.ExcelFile(file_path)
-        sheet_name = excel_data.sheet_names[0] 
+        sheet_name = excel_data.sheet_names[0]  # Assuming you want to add to the first sheet
         df = excel_data.parse(sheet_name)
 
         # Create a DataFrame for the new row
-        new_row_df = pd.DataFrame([new_row])  
+        new_row_df = pd.DataFrame([new_row])  # Create a DataFrame from the new row dictionary
 
         # Concatenate the new row DataFrame with the existing DataFrame
         df = pd.concat([df, new_row_df], ignore_index=True)
@@ -181,7 +181,7 @@ def delete_row():
 
         return jsonify({"message": "Row deleted successfully"}), 200
     except Exception as e:
-        print(f"Error deleting row: {e}")  
+        print(f"Error deleting row: {e}")  # Log the error for debugging
         return jsonify({"error": str(e)}), 500
 
 @app.route('/update_row', methods=['POST'])
