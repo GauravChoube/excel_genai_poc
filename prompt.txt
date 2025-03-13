@@ -1,25 +1,24 @@
-Convert the VBA script from the Excel file to a Python script. The main objective is to create a class named `ConvertedExcelMacros` that will work with the provided Flask application.
+Convert the VBA script from the Excel file to a Python script. The main objective is to create a class named `ConvertedExcelMacros` that will work with the provided Flask application and operate on a DataFrame.
 
 ### Class Requirements:
 - Create a Python file with the class name `ConvertedExcelMacros`.
-- Add a constructor that can optionally take a DataFrame object as an argument, allowing instantiation with or without a DataFrame.
+- Add a constructor that takes a DataFrame object as an argument.
 - Convert each VBA module into a Python equivalent function, considering:
   - Check for dependencies and required libraries, adding them at the top of the file.
   - Ensure proper indentation and syntax.
   - If conversion fails, log an error message.
 
 ### Methods to Implement:
-- `existing_macros(file_path)`: It should returns a list of existing macros.
-- `execute_macro(file_path, macro_name)`: Accepts a file path and a macro name, executes the specified macro, and returns the result. Ensure that any changes made during the execution of the macro are saved back to the original Excel file permanently.Log a success message after saving.
+- `existing_macros()`: It should return a list of existing macros.
+- `execute_macro(macro_name)`: Accepts a macro name, executes the specified macro on the DataFrame, and returns the result. Ensure that any changes made during the execution of the macro are reflected in the DataFrame.
 
 ### Additional Requirements:
-- Ensure the class is executable and can handle requests properly while maintaining the integrity of the Excel file. Use libraries like `openpyxl` that support `.xlsm` files to retain macros, formatting, and workbook structure.
-- Update the original `.xlsm` file with the modified DataFrame while retaining all macros and formatting.
-- Handle potential errors during file operations gracefully, returning appropriate error messages.
+- Ensure the class can handle requests properly while maintaining the integrity of the DataFrame.
+- Handle potential errors during operations gracefully, returning appropriate error messages.
 
 ### Important Notes:
-- The class should handle concurrent requests and manage the state of the uploaded Excel file appropriately. Ensure the Excel file is not corrupted after operations and resolve any issues that may cause corruption.
-- Use `openpyxl` or similar libraries to maintain the integrity of the workbook.
+- The class should handle concurrent requests and manage the state of the DataFrame appropriately. Ensure that the DataFrame is not corrupted after operations and resolve any issues that may cause corruption.
+- Use libraries like `pandas` to manipulate the DataFrame.
 - Do not add any code examples or descriptions in the Python file; use normal comments only.
 - Ensure that the structure and indentation are correct, removing any unnecessary marks or symbols.
 - Dont add '```python' while creating python file.
