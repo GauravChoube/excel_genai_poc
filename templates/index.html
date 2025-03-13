@@ -279,24 +279,29 @@
         }
         
         function executeMacro(macroName) {
-            const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) return alert("Please select a file");
-            if (!macroName) return alert("No macro selected");
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            formData.append('macro_name', macroName);
-            
-            $.ajax({
-                url: '/execute_macro',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: handleResponse,
-                error: handleError
-            });
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files.length) return alert("Please select a file");
+    if (!macroName) return alert("No macro selected");
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('macro_name', macroName);
+    
+    $.ajax({
+        url: '/execute_macro',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            handleResponse(response);
+        },
+        error: function(jqXHR) {
+            console.error("Error executing macro:", jqXHR.responseText);
+            $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || {"error": "Unknown error"}, null, 2));
         }
+    });
+}
         
         document.getElementById('uploadBtn').onclick = uploadFile;
         document.getElementById('viewDataBtn').onclick = viewData;
