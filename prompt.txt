@@ -9,16 +9,16 @@ Convert the VBA script from the Excel file to a Python script. The main objectiv
   - If conversion fails, log an error message.
 
 ### Methods to Implement:
-- `existing_macros()`: It should return a list of existing macros.
+- `existing_macros()`: It should return a list of existing macro names.
 - `execute_macro(macro_name)`: Accepts a macro name, executes the specified macro on the DataFrame, and returns the result. Ensure that any changes made during the execution of the macro are reflected in the DataFrame.
 
 ### Additional Requirements:
 - Ensure the class can handle requests properly while maintaining the integrity of the DataFrame.
+- The macros should be designed to operate on the DataFrame generically, without assuming specific column names or structures.
 - Handle potential errors during operations gracefully, returning appropriate error messages.
 
 ### Important Notes:
 - The class should handle concurrent requests and manage the state of the DataFrame appropriately. Ensure that the DataFrame is not corrupted after operations and resolve any issues that may cause corruption.
-- Use libraries like `pandas` to manipulate the DataFrame.
 - Do not add any code examples or descriptions in the Python file; use normal comments only.
 - Ensure that the structure and indentation are correct, removing any unnecessary marks or symbols.
 - Dont add '```python' while creating python file.
