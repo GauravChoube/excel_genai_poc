@@ -30,7 +30,11 @@ class ExcelVBAProcessor:
                 module = vba_project.VBComponents.Item(i + 1)
                 if module.Type == 1:  # Standard module
                     module_name = module.Name
-                    self.vba_macros[module_name] = module.CodeModule.Lines(1, module.CodeModule.CountOfLines)
+                    code_lines = module.CodeModule.Lines(1, module.CodeModule.CountOfLines)
+                    self.vba_macros[module_name] = {
+                        "code": code_lines,
+                        "macros": self.extract_macro_names(code_lines)  # Extract macro names
+                    }
 
             workbook.Close(SaveChanges=False)
             return self.vba_macros
@@ -41,6 +45,12 @@ class ExcelVBAProcessor:
 
         finally:
             excel.Quit()
+
+    def extract_macro_names(self, code):
+        """Extract macro names from the VBA code."""
+        import re
+        macro_names = re.findall(r'(?<=Sub\s)(\w+)', code)  # Find all macro names
+        return macro_names
 
     def convert_vba_to_python(self):
         """Convert VBA macros to Python class methods."""
