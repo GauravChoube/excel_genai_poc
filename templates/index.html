@@ -1,4 +1,3 @@
-<!-- update the sheet with new data -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,7 +127,7 @@
                 currentSheetData = response.data; // Store the data for editing
                 createTabs(response.sheets, response.data);
             } else {
-                $('#responseOutput'). text(JSON.stringify(response, null, 2));
+                $('#responseOutput').text(JSON.stringify(response, null, 2));
             }
         }
 
@@ -162,14 +161,20 @@
                 table.append(headerRow);
                 rows.forEach((row, index) => {
                     const dataRow = $('<tr></tr>');
-                    Object.values(row).forEach(value => {
-                        dataRow.append(`<td contenteditable="true">${value}</td>`);
+                    Object.values(row).forEach((value, colIndex) => {
+                        const cell = $(`<td contenteditable="true">${value}</td>`);
+                        cell.on('blur', function() {
+                            const newValue = $(this).text(); // Get the new value
+                            updateCell(sheetName, index, Object.keys(row)[colIndex], newValue); // Call update function
+                        });
+                        dataRow.append(cell);
                     });
                     dataRow.append(`<td><button onclick="deleteRow(${index})">Delete</button></td>`);
                     table.append(dataRow);
                 });
                 contentDiv.append(table);
                 contentDiv.append(createAddRowForm());
+                contentDiv.append(createAddColumnForm()); // Add the new column form
             } else {
                 contentDiv.append('<p>No Data</p>');
             }
@@ -177,6 +182,28 @@
             $('#responseOutput').append(contentDiv);
             contentDiv.addClass('active');
         }
+
+        function updateCell(sheetName, rowIndex, columnName, newValue) {
+    const updatedRow = {};
+    updatedRow[columnName] = newValue; // Create an object with the updated value
+
+    $.ajax({
+        url: '/update_row',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            sheet_name: sheetName,
+            row_index: rowIndex,
+            updated_row: updatedRow
+        }),
+        success: function(response) {
+            console.log("Row updated successfully:", response);
+        },
+        error: function(jqXHR) {
+            console.error("Error updating row:", jqXHR.responseText);
+        }
+    });
+}
 
         function createAddRowForm() {
             const form = $('<div></div>');
@@ -194,8 +221,9 @@
                 const key = Object.keys(currentSheetData[Object.keys(currentSheetData)[0]][0])[index];
                 newRow[key] = $(this).val();
             });
+
             console.log("New Row Data:", newRow);
-            $.post('/add_row', { filename: uploadedFileName, newRow: JSON.stringify(newRow) }, function(response) {
+            $.post('/add_row', { newRow: JSON.stringify(newRow) }, function(response) {
                 viewData();
             }).fail(function(jqXHR) {
                 console.error("Error adding row:", jqXHR.responseText);
@@ -203,9 +231,66 @@
         }
 
         function deleteRow(index) {
-            console.log("Delete Row Index:", index);
-            $.post('/delete_row', { filename: uploadedFileName, rowIndex: index }, function(response) {
-                viewData();
+    console.log("Delete Row Index:", index);
+    $.ajax({
+        url: '/delete_row',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ row_index: index }),  // Send the row index as JSON
+        success: function(response) {
+            console.log("Row deleted successfully:", response);
+            viewData(); // Refresh the data view
+        },
+        error: function(jqXHR) {
+            console.error("Error deleting row:", jqXHR.responseText);
+        }
+    });
+}
+
+function viewData() {
+    if (!uploadedFileName) return alert("Please upload a file first");
+    
+    const formData = new FormData();
+    formData.append('filename', uploadedFileName); 
+    
+    $.ajax({
+        url: '/view_data',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: handleResponse,
+        error: handleError
+    });
+}
+
+        function createAddColumnForm() {
+            const form = $('<div></div>');
+            form.append('<input type="text" id="newColumnName" placeholder="Enter new column name" />');
+            form.append('<button onclick="addColumn()">Add Column</button>');
+            return form;
+        }
+
+        function addColumn() {
+            const newColumnName = $('#newColumnName').val();
+            if (!newColumnName) {
+                alert("Please enter a column name.");
+                return;
+            }
+
+            $.ajax({
+                url: '/add_column',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ column_name: newColumnName }),
+                success: function(response) {
+                    console.log("Column added successfully:", response);
+                    viewData(); // Refresh the data to show the new column
+                },
+                error: function(jqXHR) {
+                    console.error("Error adding column:", jqXHR.responseText);
+                    $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || {"error": "Unknown error"}, null, 2));
+                }
             });
         }
 
@@ -234,79 +319,58 @@
         }
 
         function viewData() {
-            if (!uploadedFileName) return alert("Please upload a file first");
-    
-            const formData = new FormData();
-            formData.append('filename', uploadedFileName); 
-            
-            $.ajax({
-                url: '/view_data',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: handleResponse,
-                error: handleError
-            });
-        }
-        
-        function existingMacros() {
-            const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) return alert("Please select a file");
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            
-            $.ajax({
-                url: '/existing_macros',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    console.log ("Existing Macros:", response); // Log the response for debugging
-                    let output = '<h3>Select a Macro to Execute:</h3>';
-                    if (response.macros && response.macros.length > 0) {
-                        response.macros.forEach(macro => {
-                            output += `<div class="macro-item" onclick="executeMacro('${macro}')">${macro}</div>`;
-                        });
-                    } else {
-                        output += '<p>No existing macros found.</p>';
-                    }
-                    $('#responseOutput').html(output);
-                },
-                error: handleError
-            });
-        }
-        
-        function executeMacro(macroName) {
-    const fileInput = document.getElementById('fileInput');
-    if (!fileInput.files.length) return alert("Please select a file");
-    if (!macroName) return alert("No macro selected");
-    
+    if (!uploadedFileName) return alert("Please upload a file first");
+
     const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    formData.append('macro_name', macroName);
-    
+    formData.append('filename', uploadedFileName); 
+
     $.ajax({
-        url: '/execute_macro',
+        url: '/view_data',
         type: 'POST',
         data: formData,
         processData: false,
         contentType: false,
-        success: function(response) {
-            handleResponse(response);
-        },
-        error: function(jqXHR) {
-            console.error("Error executing macro:", jqXHR.responseText);
-            $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || {"error": "Unknown error"}, null, 2));
-        }
+        success: handleResponse,
+        error: handleError
     });
 }
+        
+        function existingMacros() {
+            $.post('/existing_macros', function(response) {
+                console.log("Existing Macros:", response);
+                let output = '<h3>Select a Macro to Execute:</h3>';
+                if (response.macros && response.macros.length > 0) {
+                    response.macros.forEach(macro => {
+                        output += `<div class="macro-item" onclick="executeMacro('${macro}')">${macro}</div>`;
+                    });
+                } else {
+                    output += '<p>No existing macros found.</p>';
+                }
+                $('#responseOutput').html(output);
+            }).fail(handleError);
+        }
+        
+        function executeMacro(macroName) {
+            if (!macroName) return alert("No macro selected");
+            
+            $.ajax({
+                url: '/execute_macro',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ macro_name: macroName }),
+                success: function(response) {
+                    handleResponse(response);
+                },
+                error: function(jqXHR) {
+                    console.error("Error executing macro:", jqXHR.responseText);
+                    $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || {"error": "Unknown error"}, null, 2));
+                }
+            });
+        }
         
         document.getElementById('uploadBtn').onclick = uploadFile;
         document.getElementById('viewDataBtn').onclick = viewData;
         document.getElementById('existingMacrosBtn').onclick = existingMacros;
-
     </script>
 </body>
 </html>
