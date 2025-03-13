@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Editable Excel-Like Table Viewer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  body { font-family: 'Calibri', sans-serif; display: flex; }
+
+  .tab {
+    overflow: hidden;
+    border-bottom: 1px solid #ccc;
+    background-color: #f0f0f0;
+  }
+
+  .tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    transition: 0.3s;
+    border-right: 1px solid #ccc;
+  }
+
+  .tab button:hover {
+    background-color: #e0e0e0;
+  }
+
+  .tab button.active {
+    background-color: white;
+    border-bottom: 1px solid white;
+  }
+
+  .tabcontent {
+    display: none;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-top: none;
+    overflow-x: auto;
+    flex: 1; /* Allow content to grow */
+  }
+
+  table {
+    border-collapse: collapse;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+
+  th, td {
+    border: 1px solid #ddd;
+    padding: 5px 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f2f2f2;
+    font-weight: normal;
+  }
+
+  td input, th input {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    padding: 5px 8px;
+  }
+
+  button.add-row, button.add-column {
+    margin: 5px;
+  }
+
+  .resize-handle {
+    position: absolute;
+    width: 5px;
+    background: #888;
+    cursor: col-resize;
+    right: 0;
+    top: 0;
+    height: 100%;
+  }
+
+  th {
+    position: relative;
+  }
+
+  #macroListContainer {
+    width: 200px; /* Adjust width as needed */
+    height: 500px; /* Adjust height as needed */
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    margin-left: 10px;
+  }
+
+  #macroListContainer div {
+    padding: 5px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+  }
+
+</style>
+</head>
+<body>
+
+<input type="file" id="excelFileInput" accept=".xlsx, .xls,.xlsm">
+<div id="tabContainer"></div>
+<div id="macroListContainer"></div>
+
+<script>
+  let workbookData = null;
+  let activeSheet = null;
+
+  document.getElementById('excelFileInput').addEventListener('change', handleFile, false);
+
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async function(event) {
+      const data = new Uint8Array(event.target.result);
+      workbookData = XLSX.read(data, { type: 'array' });
+      const tabContainer = document.getElementById('tabContainer');
+      tabContainer.innerHTML = '';
+
+      const tab = document.createElement('div');
+      tab.className = 'tab';
+      tabContainer.appendChild(tab);
+
+      workbookData.SheetNames.forEach((sheetName, index) => {
+        const button = document.createElement('button');
+        button.className = 'tablinks';
+        button.textContent = sheetName;
+        button.onclick = function() { openSheet(sheetName); };
+        tab.appendChild(button);
+
+        const sheetData = XLSX.utils.sheet_to_json(workbookData.Sheets[sheetName], { header: 1, defval: '' });
+        const tabContent = document.createElement('div');
+        tabContent.id = sheetName;
+        tabContent.className = 'tabcontent';
+        tabContent.sheetData = sheetData;
+        tabContent.appendChild(createTable(sheetData, sheetName));
+        tabContainer.appendChild(tabContent);
+
+        if (index === 0) {
+          button.classList.add('active');
+          tabContent.style.display = 'block';
+          activeSheet = sheetName;
+          await fetchMacros(); // Fetch macros on initial sheet load
+        }
+      });
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  function createTable(data, sheetName) {
+    const table = document.createElement('table');
+    const headerRow = document.createElement('tr');
+
+    if (!data || data.length === 0) {
+      data = [[]];
+    }
+
+    if (data[0] === undefined){
+      data[0] = [];
+    }
+
+    // Generate Excel-like column headers
+    const numCols = Math.max(data[0].length, data.length > 1 ? Math.max(...data.slice(1).map(row => row.length)) : 0);
+    const excelHeaders = generateExcelColumnHeaders(numCols);
+
+    excelHeaders.forEach((header, cellIndex) => {
+      const th = document.createElement('th');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = header; // Use generated header
+      input.readOnly = true; // Make headers read-only
+      th.appendChild(input);
+      headerRow.appendChild(th);
+      addResizeHandle(th, table, cellIndex, sheetName);
+    });
+
+    table.appendChild(headerRow);
+
+    data.forEach((row, rowIndex) => {
+      if (rowIndex === 0) return;
+      const tr = document.createElement('tr');
+
+      // Add row number as the first cell
+      const rowNumberTd = document.createElement('td');
+      const rowNumberInput = document.createElement('input');
+      rowNumberInput.type = 'text';
+      rowNumberInput.value = rowIndex; // Display row number
+      rowNumberInput.readOnly = true; // Make row numbers read-only
+      rowNumberTd.appendChild(rowNumberInput);
+      tr.appendChild(rowNumberTd);
+
+      row.forEach((cell, cellIndex) => {
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = cell || '';
+        input.addEventListener('change', (e) => {
+          const sheetData = document.getElementById(sheetName).sheetData;
+          if (!sheetData[rowIndex]) sheetData[rowIndex] = [];
+          sheetData[rowIndex][cellIndex] = e.target.value;
+        });
+        td.appendChild(input);
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+
+
+    const addRowButton = document.createElement('button');
+    addRowButton.textContent = 'Add Row';
+    addRowButton.className = 'add-row';
+    addRowButton.onclick = () => addRow(sheetName);
+
+    const addColumnButton = document.createElement('button');
+    addColumnButton.textContent = 'Add Column';
+    addColumnButton.className = 'add-column';
+    addColumnButton.onclick = () => addColumn(sheetName);
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.appendChild(addRowButton);
+    buttonContainer.appendChild(addColumnButton);
+    table.appendChild(buttonContainer);
+
+    return table;
+  }
+
+  function generateExcelColumnHeaders(numCols) {
+    const headers = [];
+    for (let i = 0; i < numCols; i++) {
+        headers.push(columnName(i));
+    }
+    return headers;
+    }
+
+  function columnName(num) {
+    let ret = '';
+    for (let a = 1, b = 26; (num -= a) >= 0; a = b, b *= 26) {
+        ret = String.fromCharCode(parseInt((num % b) / a) + 65) + ret;
+    }
+    return ret;
+    }
+
+  function openSheet(sheetName) {
+    const tabcontent = document.getElementsByClassName('tabcontent');
+    for (let i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].style.display = 'none';
+    }
+
+    const tablinks = document.getElementsByClassName('tablinks');
+    for (let i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(' active', '');
+    }
+
+    document.getElementById(sheetName).style.display = 'block';
+    event.currentTarget.classList.add('active');
+
+    fetchMacros(); // Fetch macros when switching sheets
+  }
+
+  async function fetchMacros() {
+    try {
+      const response = await fetch(`/get_macros?sheet=${activeSheet}`); // Replace with your API endpoint
+      const macroNames = await response.json();
+      displayMacros(macroNames);
+    } catch (error) {
+      console.error('Error fetching macros:', error);
+    }
+  }
+
+  function displayMacros(macroNames) {
+    const macroList = document.getElementById('macroListContainer');
+    macroList.innerHTML = '';
+    macroNames.forEach(macroName => {
+      const macroItem = document.createElement('div');
+      macroItem.textContent = macroName;
+      macroItem.addEventListener('click', () => executeMacro(macroName));
+      macroList.appendChild(macroItem);
+    });
+  }
+
+  async function executeMacro(macroName) {
+    try {
+      const sheetData = document.getElementById(activeSheet).sheetData;
+      const response = await fetch(`/execute_macro?macro=${macroName}&sheet=${activeSheet}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sheetData),
+      });
+
+      const result = await response.json();
+      if (result.sheetData) {
+        document.getElementById(activeSheet).sheetData = result.sheetData;
+        document.getElementById(activeSheet).innerHTML = '';
+        document.getElementById(activeSheet).appendChild(createTable(result.sheetData, activeSheet));
+      }
+    } catch (error) {
+      console.error('Error executing macro:', error);
+    }
+  }
+
+  function addRow(sheetName) {
+    const sheetData = document.getElementById(sheetName).sheetData;
+    const newRow = Array(sheetData[0].length || 1).fill('');
+    sheetData.push(newRow);
+    document.getElementById(sheetName).innerHTML = '';
+    document.getElementById(sheetName).appendChild(createTable(sheetData, sheetName));
+  }
+
+  function addColumn(sheetName) {
+    const sheetData = document.getElementById(sheetName).sheetData;
+    if (!sheetData || sheetData.length === 0) {
+        sheetData.push(['']); // If the sheet is empty, add a default row.
+    }
+    sheetData.forEach(row => row.push(''));
+    document.getElementById(sheetName).innerHTML = '';
+    document.getElementById(sheetName).appendChild(createTable(sheetData, sheetName));
+  }
+
+  function addResizeHandle(th, table, cellIndex, sheetName) {
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    th.appendChild(handle);
+
+    let originalWidth = 0;
+    let originalMouseX = 0;
+
+    handle.addEventListener('mousedown', (e) => {
+      originalMouseX = e.clientX;
+      originalWidth = th.offsetWidth;
+      document.addEventListener('mousemove', resize);
+      document.addEventListener('mouseup', stopResize);
+    });
+
+    function resize(e) {
+      const width = originalWidth + (e.clientX - originalMouseX);
+      th.style.width = width + 'px';
+      table.querySelectorAll(`tr > td:nth-child(${cellIndex + 1})`).forEach(td => {
+        td.style.width = width + 'px';
+      });
+    }
+
+    function stopResize() {
+      document.removeEventListener('mousemove', resize);
+    }
+}
+
+</script>
+
+</body>
+</html>
