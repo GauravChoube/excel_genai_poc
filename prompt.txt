@@ -1,10 +1,11 @@
-Convert the VBA script from the Excel file to a Python script. The main objective is to create a class named `ConvertedExcelMacros` that will work with the provided Flask application and operate on a DataFrame.
+Convert the VBA script from the Excel file to a Python script. The main objective is to create a class named `ConvertedExcelMacros` that will work with the provided Flask application and operate on a dictionary of DataFrame.
 
 ### Class Requirements:
 - Create a Python file with the class name `ConvertedExcelMacros`.
-- Add a constructor that takes a DataFrame object as an argument.
+- Add a constructor that takes a dictionary of DataFrames as an argument and extracts the relevant DataFrame.
+Ensure that the constructor checks for the presence and non-emptiness of the required DataFrames. If any required DataFrame is missing or empty, initialize it with a default structure (e.g., with appropriate columns) and log a warning message.
 - Convert each VBA module into a Python equivalent function, considering:
-  - Check for dependencies and required libraries, adding them at the top of the file.
+  - Ensure to Check for dependencies and required libraries, adding them at the top of the file.
   - Ensure proper indentation and syntax.
   - If conversion fails, log an error message.
 
@@ -15,10 +16,14 @@ Convert the VBA script from the Excel file to a Python script. The main objectiv
 ### Additional Requirements:
 - Ensure the class can handle requests properly while maintaining the integrity of the DataFrame.
 - The macros should be designed to operate on the DataFrame generically, without assuming specific column names or structures.
-- Handle potential errors during operations gracefully, returning appropriate error messages.
+- Before performing any operations, check if the DataFrames are empty. If they are, log a warning and handle the situation gracefully (e.g., return a message indicating that the operation cannot be performed).
+- Handle potential errors during operations gracefully, logging error messages and returning appropriate error messages to the caller.
 
 ### Important Notes:
 - The class should handle concurrent requests and manage the state of the DataFrame appropriately. Ensure that the DataFrame is not corrupted after operations and resolve any issues that may cause corruption.
-- Do not add any code examples or descriptions in the Python file; use normal comments only.
-- Ensure that the structure and indentation are correct, removing any unnecessary marks or symbols.
+- Dont provide any example and description in python file just normal comments.
+- Python file must be executable. Recheck the structure, indentation, and extra mark,symbol and remove it if not require.
+- Implement thread safety to manage concurrent requests and ensure that the DataFrame state is not corrupted after operations.
+- Include logging setup at the beginning of the file to capture all relevant actions and errors.
+    
 - Dont add '```python' while creating python file.
