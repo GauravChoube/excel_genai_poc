@@ -77,6 +77,12 @@ def upload_file():
             processor = ExcelVBAProcessor(file_path=file_path, openAIClient=openaiClient)
             data_frame = processor.read_excel_data()  # Store DataFrame
             logging.info(f"DataFrame created: {data_frame}")  # Log the DataFrame
+            logging.info(f"Type of data_frame: {type(data_frame)}") 
+            if isinstance(data_frame, dict):
+                for key, df in data_frame.items():
+                    logging.info(f"DataFrame '{key}' shape: {df.shape}")  # Log the shape of each DataFrame
+            else:
+                logging.error("data_frame is not a dictionary.")
             vba_macros = processor.extract_vba_macros()  # Store extracted macros
             processor.convert_vba_to_python()
             processor.save_python_class()  # Save the converted macros
@@ -201,6 +207,12 @@ def execute_macro():
         return jsonify({"error": "Macro name is required."}), 400
 
     try:
+        logging.info(f"Type of data_frame before passing: {type(data_frame)}")  # Log the type
+        if isinstance(data_frame, dict):
+            for key, df in data_frame.items():
+                logging.info(f"DataFrame '{key}' shape: {df.shape}")  # Log the shape of each DataFrame
+        else:
+            logging.error("data_frame is not a dictionary.")
         # Dynamically import the ConvertedExcelMacros class
         converted_macros = importlib.import_module('converted_macros')
         macro_class = converted_macros.ConvertedExcelMacros(data_frame)  # Use the latest DataFrame
