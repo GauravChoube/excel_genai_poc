@@ -150,39 +150,39 @@
         }
 
         function showSheetData(sheetName, rows) {
-            const contentDiv = $('<div class="tab-content"></div>');
-            if (rows.length > 0) {
-                const table = $('<table></table>');
-                const headerRow = $('<tr></tr>');
-                Object.keys(rows[0]).forEach(key => {
-                    headerRow.append(`<th>${key}</th>`);
+    const contentDiv = $('<div class="tab-content"></div>');
+    if (rows.length > 0) {
+        const table = $('<table></table>');
+        const headerRow = $('<tr></tr>');
+        Object.keys(rows[0]).forEach(key => {
+            const headerCell = $(`<th>${key} <button onclick="deleteColumn('${sheetName}', '${key}')">Delete</button></th>`);
+            headerRow.append(headerCell);
+        });
+        headerRow.append('<th>Actions</th>');
+        table.append(headerRow);
+        rows.forEach((row, index) => {
+            const dataRow = $('<tr></tr>');
+            Object.values(row).forEach((value, colIndex) => {
+                const cell = $(`<td contenteditable="true">${value}</td>`);
+                cell.on('blur', function() {
+                    const newValue = $(this).text();
+                    updateCell(sheetName, index, Object.keys(row)[colIndex], newValue); // Pass sheetName here
                 });
-                headerRow.append('<th>Actions</th>');
-                table.append(headerRow);
-                rows.forEach((row, index) => {
-                    const dataRow = $('<tr></tr>');
-                    Object.values(row).forEach((value, colIndex) => {
-                        const cell = $(`<td contenteditable="true">${value}</td>`);
-                        cell.on('blur', function() {
-                            const newValue = $(this).text(); // Get the new value
-                            updateCell(sheetName, index, Object.keys(row)[colIndex], newValue); // Call update function
-                        });
-                        dataRow.append(cell);
-                    });
-                    dataRow.append(`<td><button onclick="deleteRow(${index})">Delete</button></td>`);
-                    table.append(dataRow);
-                });
-                contentDiv.append(table);
-                contentDiv.append(createAddRowForm());
-                contentDiv.append(createAddColumnForm()); // Add the new column form
-            } else {
-                contentDiv.append('<p>No Data</p>');
-            }
-            $('.tab-content').remove();
-            $('#responseOutput').append(contentDiv);
-            contentDiv.addClass('active');
-        }
-
+                dataRow.append(cell);
+            });
+            dataRow.append(`<td><button onclick="deleteRow('${sheetName}', ${index})">Delete</button></td>`);
+            table.append(dataRow);
+        });
+        contentDiv.append(table);
+        contentDiv.append(createAddRowForm(sheetName));
+        contentDiv.append(createAddColumnForm(sheetName));
+    } else {
+        contentDiv.append('<p>No Data</p>');
+    }
+    $('.tab-content').remove();
+    $('#responseOutput').append(contentDiv);
+    contentDiv.addClass('active');
+}
         function updateCell(sheetName, rowIndex, columnName, newValue) {
     const updatedRow = {};
     updatedRow[columnName] = newValue; // Create an object with the updated value
@@ -205,41 +205,52 @@
     });
 }
 
-        function createAddRowForm() {
-            const form = $('<div></div>');
-            const inputFields = Object.keys(currentSheetData[Object.keys(currentSheetData)[0]][0]).map(key => {
-                return `<input type="text" placeholder="Enter ${key}" class="new-row-input" />`;
-            }).join('');
-            form.append(inputFields);
-            form.append('<button onclick="addRow()">Add Row</button>');
-            return form;
+
+function createAddRowForm(sheetName) {
+    const form = $('<div></div>');
+    const inputFields = Object.keys(currentSheetData[sheetName][0]).map(key => {
+        return `<input type="text" placeholder="Enter ${key}" class="new-row-input" />`;
+    }).join('');
+    form.append(inputFields);
+    form.append(`<button onclick="addRow('${sheetName}')">Add Row</button>`);
+    return form;
+}
+
+function addRow(sheetName) {
+    const newRow = {};
+    $('.new-row-input').each(function(index) {
+        const key = Object.keys(currentSheetData[sheetName][0])[index];
+        newRow[key] = $(this).val();
+    });
+
+    console.log("New Row Data:", newRow);
+    $.ajax({
+        url: '/add_row',
+        type: 'POST',
+        contentType: 'application/json', // Set the content type to JSON
+        data: JSON.stringify({
+            sheet_name: sheetName,
+            newRow: newRow // Send the new row data as JSON
+        }),
+        success: function(response) {
+            viewData(); // Refresh the data view
+        },
+        error: function(jqXHR) {
+            console.error("Error adding row:", jqXHR.responseText);
         }
+    });
+}
 
-        function addRow() {
-            const newRow = {};
-            $('.new-row-input').each(function(index) {
-                const key = Object.keys(currentSheetData[Object.keys(currentSheetData)[0]][0])[index];
-                newRow[key] = $(this).val();
-            });
-
-            console.log("New Row Data:", newRow);
-            $.post('/add_row', { newRow: JSON.stringify(newRow) }, function(response) {
-                viewData();
-            }).fail(function(jqXHR) {
-                console.error("Error adding row:", jqXHR.responseText);
-            });
-        }
-
-        function deleteRow(index) {
+function deleteRow(sheetName, index) {
     console.log("Delete Row Index:", index);
     $.ajax({
         url: '/delete_row',
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ row_index: index }),  // Send the row index as JSON
+        data: JSON.stringify({ sheet_name: sheetName, row_index: index }),
         success: function(response) {
             console.log("Row deleted successfully:", response);
-            viewData(); // Refresh the data view
+            viewData();
         },
         error: function(jqXHR) {
             console.error("Error deleting row:", jqXHR.responseText);
@@ -247,6 +258,57 @@
     });
 }
 
+function createAddColumnForm(sheetName) {
+    const form = $('<div></div>');
+    form.append('<input type="text" id="newColumnName" placeholder="Enter new column name" />');
+    form.append(`<button onclick="addColumn('${sheetName}')">Add Column</button>`);
+    return form;
+}
+
+function addColumn(sheetName) {
+    const newColumnName = $('#newColumnName').val();
+    if (!newColumnName) {
+        alert("Please enter a column name.");
+        return;
+    }
+
+    $.ajax({
+        url: '/add_column',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ sheet_name: sheetName, column_name: newColumnName }),
+        success: function(response) {
+            console.log("Column added successfully:", response);
+            viewData();
+        },
+        error: function(jqXHR) {
+            console.error("Error adding column:", jqXHR.responseText);
+            $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || {"error": "Unknown error"}, null, 2));
+        }
+    });
+}
+
+function deleteColumn(sheetName, columnName) {
+    if (confirm(`Are you sure you want to delete the column "${columnName}"?`)) {
+        $.ajax({
+            url: '/delete_column',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ sheet_name: sheetName, column_name: columnName }),
+            success: function(response) {
+                console.log("Column deleted successfully:", response);
+                viewData();
+            },
+            error: function(jqXHR) {
+                console.error("Error deleting column:", jqXHR.responseText);
+            }
+        });
+    }
+}
+
+
+
+       
 function viewData() {
     if (!uploadedFileName) return alert("Please upload a file first");
     
@@ -264,35 +326,7 @@ function viewData() {
     });
 }
 
-        function createAddColumnForm() {
-            const form = $('<div></div>');
-            form.append('<input type="text" id="newColumnName" placeholder="Enter new column name" />');
-            form.append('<button onclick="addColumn()">Add Column</button>');
-            return form;
-        }
-
-        function addColumn() {
-            const newColumnName = $('#newColumnName').val();
-            if (!newColumnName) {
-                alert("Please enter a column name.");
-                return;
-            }
-
-            $.ajax({
-                url: '/add_column',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ column_name: newColumnName }),
-                success: function(response) {
-                    console.log("Column added successfully:", response);
-                    viewData(); // Refresh the data to show the new column
-                },
-                error: function(jqXHR) {
-                    console.error("Error adding column:", jqXHR.responseText);
-                    $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || {"error": "Unknown error"}, null, 2));
-                }
-            });
-        }
+        
 
         function handleError(error) {
             $('#responseOutput').text(JSON.stringify(error.responseJSON || {"error": "Unknown error"}, null, 2));
