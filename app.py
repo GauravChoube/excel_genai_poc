@@ -105,28 +105,10 @@ def view_data():
     
     return jsonify({"sheets": list(data_frame.keys()), "data": data}), 200
 
-@app.route('/add_row', methods=['POST'])
-def add_row():
-    global data_frame  # Declare global variable
-    if data_frame is None:
-        return jsonify({"error": "No data available. Please upload a file first."}), 400
-
-    new_row = json.loads(request.form['newRow'])  # Ensure this is a valid JSON string
-    sheet_name = list(data_frame.keys())[0]  # Assuming you want to add to the first sheet
-
-    try:
-        new_row_df = pd.DataFrame([new_row])  # Create a DataFrame from the new row
-        data_frame[sheet_name] = pd.concat([data_frame[sheet_name], new_row_df], ignore_index=True)  # Concatenate the new row DataFrame with the existing DataFrame
-        logging.info(f"New row added to '{sheet_name}': {new_row}")  # Log the new row added
-        return jsonify({"message": "Row added successfully"}), 200
-    except Exception as e:
-        logging.error(f"Error adding row: {e}")  
-        return jsonify({"error": str(e)}), 500
-
 
 @app.route('/update_row', methods=['POST'])
 def update_row():
-    global data_frame  # Declare global variable
+    global data_frame
     if data_frame is None:
         return jsonify({"error": "No data available. Please upload a file first."}), 400
 
@@ -137,51 +119,102 @@ def update_row():
     try:
         # Update the specified row with new data
         for column, value in updated_row.items():
-            data_frame[sheet_name].at[row_index, column] = value  # Update the DataFrame
-        logging.info(f"Row updated in '{sheet_name}': {updated_row}")  # Log the updated row
+            # Ensure the value matches the existing data type
+            if column in data_frame[sheet_name].columns:
+                existing_dtype = data_frame[sheet_name][column].dtype
+                updated_value = pd.Series(value).astype(existing_dtype).iloc[0]  # Convert to existing dtype
+                data_frame[sheet_name].at[row_index, column] = updated_value  # Update the DataFrame
+        logging.info(f"Row updated in '{sheet_name}': {updated_row}")
         return jsonify({"message": "Row updated successfully"}), 200
     except Exception as e:
-        logging.error(f"Error updating row: {e}")  
+        logging.error(f"Error updating row: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/add_row', methods=['POST'])
+def add_row():
+    global data_frame
+    if data_frame is None:
+        return jsonify({"error": "No data available. Please upload a file first."}), 400
+
+    sheet_name = request.json.get('sheet_name')
+    new_row = request.json.get('newRow')
+
+    try:
+        # Create a DataFrame from the new row
+        new_row_df = pd.DataFrame([new_row])
+
+        # Ensure the new row matches the data types of the existing DataFrame
+        for column in data_frame[sheet_name].columns:
+            if column in new_row_df.columns:
+                new_row_df[column] = new_row_df[column].astype(data_frame[sheet_name][column].dtype)
+
+        # Concatenate the new row DataFrame with the existing DataFrame
+        data_frame[sheet_name] = pd.concat([data_frame[sheet_name], new_row_df], ignore_index=True)
+        logging.info(f"New row added to '{sheet_name}': {new_row}")
+        return jsonify({"message": "Row added successfully"}), 200
+    except Exception as e:
+        logging.error(f"Error adding row: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/delete_row', methods=['POST'])
 def delete_row():
-    global data_frame  # Declare global variable
+    global data_frame
     if data_frame is None:
         return jsonify({"error": "No data available. Please upload a file first."}), 400
 
+    sheet_name = request.json.get('sheet_name')
     row_index = request.json.get('row_index')
-    sheet_name = list(data_frame.keys())[0]  # Assuming you want to delete from the first sheet
 
     try:
-        # Check if the row index is valid
         if row_index is not None and 0 <= row_index < len(data_frame[sheet_name]):
-            data_frame[sheet_name].drop(index=row_index, inplace=True)  # Delete the row
-            data_frame[sheet_name].reset_index(drop=True, inplace=True)  # Reset index after deletion
-            logging.info(f"Row {row_index} deleted from '{sheet_name}'")  # Log the deletion
+            data_frame[sheet_name].drop(index=row_index, inplace=True)
+            data_frame[sheet_name].reset_index(drop=True, inplace=True)
+            logging.info(f"Row {row_index} deleted from '{sheet_name}'")
             return jsonify({"message": "Row deleted successfully"}), 200
         else:
             return jsonify({"error": "Invalid row index"}), 400
     except Exception as e:
-        logging.error(f"Error deleting row: {e}")  
+        logging.error(f"Error deleting row: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/add_column', methods=['POST'])
 def add_column():
-    global data_frame  # Declare global variable
+    global data_frame
     if data_frame is None:
         return jsonify({"error": "No data available. Please upload a file first."}), 400
 
+    sheet_name = request.json.get('sheet_name')
     column_name = request.json.get('column_name')
-    sheet_name = list(data_frame.keys())[0]  # Assuming you want to add to the first sheet
 
     try:
-        data_frame[sheet_name][column_name] = None  # Add a new column with None values
-        logging.info(f"Column '{column_name}' added to '{sheet_name}'")  # Log the addition
+        data_frame[sheet_name][column_name] = None
+        logging.info(f"Column '{column_name}' added to '{sheet_name}'")
         return jsonify({"message": "Column added successfully"}), 200
     except Exception as e:
-        logging.error(f"Error adding column: {e}")  
+        logging.error(f"Error adding column: {e}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/delete_column', methods=['POST'])
+def delete_column():
+    global data_frame
+    if data_frame is None:
+        return jsonify({"error": "No data available. Please upload a file first."}), 400
+
+    sheet_name = request.json.get('sheet_name')
+    column_name = request.json.get('column_name')
+
+    try:
+        if column_name in data_frame[sheet_name].columns:
+            data_frame[sheet_name].drop(columns=[column_name], inplace=True)
+            logging.info(f"Column '{column_name}' deleted from '{sheet_name}'")
+            return jsonify({"message": "Column deleted successfully"}), 200
+        else:
+            return jsonify({"error": "Column not found"}), 400
+    except Exception as e:
+        logging.error(f"Error deleting column: {e}")
+        return jsonify({"error": str(e)}), 500
+
     
 @app.route('/existing_macros', methods=['POST'])
 def existing_macros():
@@ -219,7 +252,7 @@ def execute_macro():
         result = macro_class.execute_macro(macro_name)  # Execute the macro
         return jsonify(result), 200
     except Exception as e:
-        logging.error(f"Error executing macro '{macro_name}': {e}")
+        # logging.error(f"Error executing macro '{macro_name}': {e}")
         return jsonify({"error": str(e)}), 500
 
 
