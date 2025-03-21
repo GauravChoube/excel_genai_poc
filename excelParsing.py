@@ -1,6 +1,9 @@
 import pandas as pd
 import win32com.client
 import os
+import openpyxl
+from openpyxl.utils import range_boundaries
+
 
 class ExcelVBAProcessor:
     def __init__(self, file_path, openAIClient):
@@ -15,6 +18,73 @@ class ExcelVBAProcessor:
         """Read all sheets from the Excel file into a dictionary."""
         self.excel_data = pd.read_excel(self.file_path, sheet_name=None)
         return self.excel_data
+    
+    def read_excel_with_formulas_all_sheets(self):
+        """
+        Reads all sheets of an Excel file, including formulas, into a dictionary of DataFrames.
+
+        Args:
+            file_path (str): Path to the Excel file.
+
+        Returns:
+            dict: A dictionary where keys are sheet names and values are DataFrames containing data and formulas.
+        """
+        try:
+            # Load workbook without evaluating formulas
+            wb = openpyxl.load_workbook(self.file_path, data_only=False)  # data_only=False to capture formulas
+            sheet_names = wb.sheetnames
+            all_dfs = {}
+
+            # Iterate through each sheet
+            for sheet_name in sheet_names:
+                ws = wb[sheet_name]
+                spaceCnt = 1
+                # Dynamically calculate the used range
+                range_string = ws.calculate_dimension()
+                min_col, min_row, max_col, max_row = range_boundaries(range_string)
+
+                data_rows = []
+                header_row = None
+
+                # Iterate over the entire range to capture values and formulas
+                for row_idx, row in enumerate(ws.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col), start=1):
+                    row_data = []
+                    print([str(cell.value) for cell in row]) 
+                    print([cell.data_type for cell in row])  # Check cell types
+                    for cell in row:
+                        print(f"{cell.col_idx}-{cell.internal_value}")
+                        # Check if cell contains a formula
+                        if cell.data_type == 'f':  # Formula cell
+                            # row_data.append(f"={cell.value}")
+                            row_data.append(str(cell.internal_value))
+                        else:
+                            if row_idx == 1 and cell.value == None:
+                                cell.value = " "*spaceCnt
+                                spaceCnt += 1
+                            row_data.append(cell.value)
+
+                    # Store header row separately
+                    if row_idx == 1:
+                        header_row = row_data
+                    else:
+                        data_rows.append(row_data)
+
+                # Create DataFrame if valid data is present
+                if header_row and data_rows:
+                    df = pd.DataFrame(data_rows, columns=header_row)
+                    print(df)
+                    all_dfs[sheet_name] = df
+                else:
+                    all_dfs[sheet_name] = pd.DataFrame()  # Empty DataFrame for empty sheets
+
+            return all_dfs
+
+        except FileNotFoundError:
+            print(f"Error: File not found at {self.file_path}")
+            return None
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
 
     def extract_vba_macros(self):
         """Extract all VBA macros from the Excel file."""
@@ -101,6 +171,25 @@ class ExcelVBAProcessor:
         fp = open("./prompt.txt", "r")
         prompt = fp.read()
         prompt = prompt + f"\n'''\n{vba_code}\n'''"
+
+        print(f"Final prompt as follow:=>\n{prompt}")
+
+        python_code = self.openAIClient.promptCall(prompt)
+
+        print(f"Converted Python code:\n{python_code}")
+        print(f"========================================")
+        # return "    " + python_code.replace("\n", "\n    ")  # Indent properly
+        return python_code
+
+    def formula_to_python_translator(self, formulaStr):
+        """Convert formulaStr to Python using OpenAI API."""
+
+        print(f"VBA code:\n{formulaStr}")
+
+        # read a promt from file
+        fp = open("./prompt_formula.txt", "r")
+        prompt = fp.read()
+        prompt = prompt + f"\n'''\n{formulaStr}\n'''"
 
         print(f"Final prompt as follow:=>\n{prompt}")
 

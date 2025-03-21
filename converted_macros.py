@@ -1,76 +1,92 @@
+# logging setup
+import logging
+from threading import Lock
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 import pandas as pd
 from datetime import datetime
-import logging
 
 class ConvertedExcelMacros:
-    def __init__(self, dataframe):
-        self.dataframe = dataframe
-        logging.basicConfig(filename='converted_macros.log', level=logging.ERROR)
+    def __init__(self, df_dict):
+        self.df_dict = df_dict
+        self.lock = Lock()
 
-    def copy_data(self):
+        # Check and initialize required DataFrames
+        self._initialize_dataframe("Data", ["Column1", "Column2"])
+        self._initialize_dataframe("Summary", ["Column1", "Column2"])
+
+    def _initialize_dataframe(self, key, columns):
+        """
+        Initializes a DataFrame if it is missing or empty.
+        """
+        if key not in self.df_dict or self.df_dict[key].empty:
+            logging.warning(f"{key} DataFrame is missing or empty. Initializing with default structure.")
+            self.df_dict[key] = pd.DataFrame(columns=columns)
+
+    def existing_macros(self):
+        """
+        Returns a list of existing macro names.
+        """
+        return ["CopyData", "ClearSummary", "AddNewRow"]
+
+    def execute_macro(self, macro_name):
+        """
+        Executes the specified macro on the relevant DataFrame.
+
+        Args:
+            macro_name: Name of the macro to execute.
+
+        Returns:
+            Result of the macro execution, if applicable.
+        """
+        macro_map = {
+            "CopyData": self._copy_data,
+            "ClearSummary": self._clear_summary,
+            "AddNewRow": self._add_new_row
+        }
+
+        if macro_name not in macro_map:
+            logging.error(f"Macro '{macro_name}' does not exist.")
+            return f"Error: Macro '{macro_name}' does not exist."
+
         try:
-            if 'Data' in self.dataframe and 'Summary' in self.dataframe:
-                self.dataframe['Summary'] = self.dataframe['Data'].copy()[:10]
-                print("Data Copied Successfully!")
-            else:
-                raise KeyError("Required sheets 'Data' or 'Summary' are not available.")
+            with self.lock:
+                return macro_map[macro_name]()
         except Exception as e:
-            logging.error(f"Error in copy_data function: {e}")
+            logging.error(f"Error during macro execution '{macro_name}': {e}")
+            return f"Error: {e}"
 
-    def clear_summary(self):
-        try:
-            if 'Summary' in self.dataframe:
-                self.dataframe['Summary'] = self.dataframe['Summary'].iloc[0:0]
-                print("Summary Sheet Cleared!")
-            else:
-                raise KeyError("Sheet 'Summary' is not available.")
-        except Exception as e:
-            logging.error(f"Error in clear_summary function: {e}")
+    def _copy_data(self):
+        """
+        Copies data from 'Data' to 'Summary' and returns a success message.
+        """
+        if self.df_dict["Data"].empty:
+            logging.warning("Data DataFrame is empty. Cannot perform CopyData macro.")
+            return "Warning: Data DataFrame is empty. Cannot perform CopyData."
 
-    def add_new_row(self):
-        try:
-            if 'Data' in self.dataframe:
-                last_row = len(self.dataframe['Data'])
-                new_data = {"Column1": "New Entry", "Column2": datetime.now()}
-                self.dataframe['Data'] = self.dataframe['Data'].append(new_data, ignore_index=True)
-                print("New Row Added!")
-            else:
-                raise KeyError("Sheet 'Data' is not available.")
-        except Exception as e:
-            logging.error(f"Error in add_new_row function: {e}")
+        self.df_dict["Summary"] = self.df_dict["Data"].copy()
+        logging.info("Data copied successfully to Summary.")
+        return "Data Copied Successfully!"
 
-    def operation(self):
-        try:
-            operations = {
-                1: self.copy_data,
-                2: self.clear_summary,
-                3: self.add_new_row
-            }
-            print("\nSelect operation:")
-            print("1. Copy Data")
-            print("2. Clear Summary")
-            print("3. Add New Row")
-            choice = int(input("Enter your choice (1/2/3): ").strip())
-            if choice in operations:
-                operations[choice]()
-            else:
-                print("Invalid Choice!")
-        except Exception as e:
-            logging.error(f"Error in operation function: {e}")
+    def _clear_summary(self):
+        """
+        Clears data from 'Summary' DataFrame and returns a success message.
+        """
+        self.df_dict["Summary"] = pd.DataFrame(columns=self.df_dict["Summary"].columns)
+        logging.info("Summary DataFrame cleared successfully.")
+        return "Summary Sheet Cleared!"
 
-def main():
-    try:
-        input_file = input("Enter the path of the Excel file: ").strip()
-        df = pd.read_excel(input_file, sheet_name=None)  # Load all sheets into a dict of dataframes
-        macro_operations = ConvertedExcelMacros(dataframe=df)
-        macro_operations.operation()
-        with pd.ExcelWriter(input_file, engine='openpyxl') as writer:
-            for sheet, data in df.items():
-                data.to_excel(writer, sheet_name=sheet, index=False)  # Save updated data back to the same file
-        print("Excel file updated successfully!")
-    except Exception as e:
-        logging.error(f"Error in main function: {e}")
+    def _add_new_row(self):
+        """
+        Adds a new row with a timestamp to 'Data' and returns a success message.
+        """
+        new_row = {"Column1": "New Entry", "Column2": datetime.now()}
+        self.df_dict["Data"] = pd.concat([self.df_dict["Data"], pd.DataFrame([new_row])], ignore_index=True)
+        logging.info("New row added to Data DataFrame successfully.")
+        return "New Row Added!"
 
-if __name__ == "__main__":
-    main()
+
+
+
 

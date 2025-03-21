@@ -19,7 +19,7 @@ Ensure you have Python installed (3.7+ recommended).
 
 Install dependencies:  
 ```bash
-pip install pandas pywin32 openpyxl
+ pip install pandas pywin32 openpyxl flask xlwings
 ```
 ---
 ## Getting Started

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,15 +13,18 @@
             padding: 0;
             background-color: #f4f4f4;
         }
+
         header {
             background-color: #28a745;
             color: white;
             padding: 10px 20px;
             text-align: center;
         }
+
         h1 {
             margin: 0;
         }
+
         .container {
             max-width: 800px;
             margin: 20px auto;
@@ -29,13 +33,16 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        input[type="file"], input[type="text"] {
+
+        input[type="file"],
+        input[type="text"] {
             margin: 10px 0;
             width: calc(100% - 22px);
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
         }
+
         button {
             padding: 10px 15px;
             background-color: #28a745;
@@ -45,18 +52,22 @@
             cursor: pointer;
             margin: 5px 0;
         }
+
         button:hover {
             background-color: #218838;
         }
+
         h2 {
             margin-top: 20px;
         }
+
         pre {
             background-color: #e9ecef;
             padding: 10px;
             border-radius: 5px;
             overflow: auto;
         }
+
         .macro-item {
             padding: 10px;
             margin: 5px 0;
@@ -65,9 +76,11 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
+
         .macro-item:hover {
             background-color: #d6d6d6;
         }
+
         .tab {
             display: inline-block;
             padding: 10px;
@@ -76,32 +89,46 @@
             margin-right: 5px;
             border-radius: 5px;
         }
+
         .tab.active {
             background-color: #28a745;
             color: white;
         }
+
         .tab-content {
             display: none;
             margin-top: 20px;
         }
+
         .tab-content.active {
             display: block;
         }
+
         /* Table styles */
         table {
-            border-collapse: collapse; /* Ensures that borders are collapsed into a single border */
-            width: 100%; /* Makes the table take the full width of its container */
+            border-collapse: collapse;
+            /* Ensures that borders are collapsed into a single border */
+            width: 100%;
+            /* Makes the table take the full width of its container */
         }
-        th, td {
-            border: 2px solid #28a745; /* Change the border color and width */
-            padding: 10px; /* Adds padding inside the cells */
-            text-align: left; /* Aligns text to the left */
+
+        th,
+        td {
+            border: 2px solid #28a745;
+            /* Change the border color and width */
+            padding: 10px;
+            /* Adds padding inside the cells */
+            text-align: left;
+            /* Aligns text to the left */
         }
+
         th {
-            background-color: #f2f2f2; /* Light gray background for header cells */
+            background-color: #f2f2f2;
+            /* Light gray background for header cells */
         }
     </style>
 </head>
+
 <body>
     <header>
         <h1>Excel Macro Executor</h1>
@@ -111,7 +138,7 @@
         <button id="uploadBtn">Upload</button>
         <button id="viewDataBtn">View Data</button>
         <button id="existingMacrosBtn">Existing Macros</button>
-        
+
         <h2>Response</h2>
         <div id="responseOutput"></div>
     </div>
@@ -135,7 +162,7 @@
             const tabContainer = $('<div></div>');
             sheets.forEach(sheet => {
                 const tab = $(`<div class="tab">${sheet}</div>`);
-                tab.on('click', function() {
+                tab.on('click', function () {
                     $('.tab').removeClass('active');
                     $(this).addClass('active');
                     showSheetData(sheet, data[sheet]);
@@ -150,186 +177,186 @@
         }
 
         function showSheetData(sheetName, rows) {
-    const contentDiv = $('<div class="tab-content"></div>');
-    if (rows.length > 0) {
-        const table = $('<table></table>');
-        const headerRow = $('<tr></tr>');
-        Object.keys(rows[0]).forEach(key => {
-            const headerCell = $(`<th>${key} <button onclick="deleteColumn('${sheetName}', '${key}')">Delete</button></th>`);
-            headerRow.append(headerCell);
-        });
-        headerRow.append('<th>Actions</th>');
-        table.append(headerRow);
-        rows.forEach((row, index) => {
-            const dataRow = $('<tr></tr>');
-            Object.values(row).forEach((value, colIndex) => {
-                const cell = $(`<td contenteditable="true">${value}</td>`);
-                cell.on('blur', function() {
-                    const newValue = $(this).text();
-                    updateCell(sheetName, index, Object.keys(row)[colIndex], newValue); // Pass sheetName here
+            const contentDiv = $('<div class="tab-content"></div>');
+            if (rows.length > 0) {
+                const table = $('<table></table>');
+                const headerRow = $('<tr></tr>');
+                Object.keys(rows[0]).forEach(key => {
+                    const headerCell = $(`<th>${key} <button onclick="deleteColumn('${sheetName}', '${key}')">Delete</button></th>`);
+                    headerRow.append(headerCell);
                 });
-                dataRow.append(cell);
-            });
-            dataRow.append(`<td><button onclick="deleteRow('${sheetName}', ${index})">Delete</button></td>`);
-            table.append(dataRow);
-        });
-        contentDiv.append(table);
-        contentDiv.append(createAddRowForm(sheetName));
-        contentDiv.append(createAddColumnForm(sheetName));
-    } else {
-        contentDiv.append('<p>No Data</p>');
-    }
-    $('.tab-content').remove();
-    $('#responseOutput').append(contentDiv);
-    contentDiv.addClass('active');
-}
-        function updateCell(sheetName, rowIndex, columnName, newValue) {
-    const updatedRow = {};
-    updatedRow[columnName] = newValue; // Create an object with the updated value
-
-    $.ajax({
-        url: '/update_row',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            sheet_name: sheetName,
-            row_index: rowIndex,
-            updated_row: updatedRow
-        }),
-        success: function(response) {
-            console.log("Row updated successfully:", response);
-        },
-        error: function(jqXHR) {
-            console.error("Error updating row:", jqXHR.responseText);
-        }
-    });
-}
-
-
-function createAddRowForm(sheetName) {
-    const form = $('<div></div>');
-    const inputFields = Object.keys(currentSheetData[sheetName][0]).map(key => {
-        return `<input type="text" placeholder="Enter ${key}" class="new-row-input" />`;
-    }).join('');
-    form.append(inputFields);
-    form.append(`<button onclick="addRow('${sheetName}')">Add Row</button>`);
-    return form;
-}
-
-function addRow(sheetName) {
-    const newRow = {};
-    $('.new-row-input').each(function(index) {
-        const key = Object.keys(currentSheetData[sheetName][0])[index];
-        newRow[key] = $(this).val();
-    });
-
-    console.log("New Row Data:", newRow);
-    $.ajax({
-        url: '/add_row',
-        type: 'POST',
-        contentType: 'application/json', // Set the content type to JSON
-        data: JSON.stringify({
-            sheet_name: sheetName,
-            newRow: newRow // Send the new row data as JSON
-        }),
-        success: function(response) {
-            viewData(); // Refresh the data view
-        },
-        error: function(jqXHR) {
-            console.error("Error adding row:", jqXHR.responseText);
-        }
-    });
-}
-
-function deleteRow(sheetName, index) {
-    console.log("Delete Row Index:", index);
-    $.ajax({
-        url: '/delete_row',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ sheet_name: sheetName, row_index: index }),
-        success: function(response) {
-            console.log("Row deleted successfully:", response);
-            viewData();
-        },
-        error: function(jqXHR) {
-            console.error("Error deleting row:", jqXHR.responseText);
-        }
-    });
-}
-
-function createAddColumnForm(sheetName) {
-    const form = $('<div></div>');
-    form.append('<input type="text" id="newColumnName" placeholder="Enter new column name" />');
-    form.append(`<button onclick="addColumn('${sheetName}')">Add Column</button>`);
-    return form;
-}
-
-function addColumn(sheetName) {
-    const newColumnName = $('#newColumnName').val();
-    if (!newColumnName) {
-        alert("Please enter a column name.");
-        return;
-    }
-
-    $.ajax({
-        url: '/add_column',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ sheet_name: sheetName, column_name: newColumnName }),
-        success: function(response) {
-            console.log("Column added successfully:", response);
-            viewData();
-        },
-        error: function(jqXHR) {
-            console.error("Error adding column:", jqXHR.responseText);
-            $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || {"error": "Unknown error"}, null, 2));
-        }
-    });
-}
-
-function deleteColumn(sheetName, columnName) {
-    if (confirm(`Are you sure you want to delete the column "${columnName}"?`)) {
-        $.ajax({
-            url: '/delete_column',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ sheet_name: sheetName, column_name: columnName }),
-            success: function(response) {
-                console.log("Column deleted successfully:", response);
-                viewData();
-            },
-            error: function(jqXHR) {
-                console.error("Error deleting column:", jqXHR.responseText);
+                headerRow.append('<th>Actions</th>');
+                table.append(headerRow);
+                rows.forEach((row, index) => {
+                    const dataRow = $('<tr></tr>');
+                    Object.values(row).forEach((value, colIndex) => {
+                        const cell = $(`<td contenteditable="true">${value}</td>`);
+                        cell.on('blur', function () {
+                            const newValue = $(this).text();
+                            updateCell(sheetName, index, Object.keys(row)[colIndex], newValue); // Pass sheetName here
+                        });
+                        dataRow.append(cell);
+                    });
+                    dataRow.append(`<td><button onclick="deleteRow('${sheetName}', ${index})">Delete</button></td>`);
+                    table.append(dataRow);
+                });
+                contentDiv.append(table);
+                contentDiv.append(createAddRowForm(sheetName));
+                contentDiv.append(createAddColumnForm(sheetName));
+            } else {
+                contentDiv.append('<p>No Data</p>');
             }
-        });
-    }
-}
+            $('.tab-content').remove();
+            $('#responseOutput').append(contentDiv);
+            contentDiv.addClass('active');
+        }
+        function updateCell(sheetName, rowIndex, columnName, newValue) {
+            const updatedRow = {};
+            updatedRow[columnName] = newValue; // Create an object with the updated value
+
+            $.ajax({
+                url: '/update_row',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    sheet_name: sheetName,
+                    row_index: rowIndex,
+                    updated_row: updatedRow
+                }),
+                success: function (response) {
+                    console.log("Row updated successfully:", response);
+                },
+                error: function (jqXHR) {
+                    console.error("Error updating row:", jqXHR.responseText);
+                }
+            });
+        }
+
+
+        function createAddRowForm(sheetName) {
+            const form = $('<div></div>');
+            const inputFields = Object.keys(currentSheetData[sheetName][0]).map(key => {
+                return `<input type="text" placeholder="Enter ${key}" class="new-row-input" />`;
+            }).join('');
+            form.append(inputFields);
+            form.append(`<button onclick="addRow('${sheetName}')">Add Row</button>`);
+            return form;
+        }
+
+        function addRow(sheetName) {
+            const newRow = {};
+            $('.new-row-input').each(function (index) {
+                const key = Object.keys(currentSheetData[sheetName][0])[index];
+                newRow[key] = $(this).val();
+            });
+
+            console.log("New Row Data:", newRow);
+            $.ajax({
+                url: '/add_row',
+                type: 'POST',
+                contentType: 'application/json', // Set the content type to JSON
+                data: JSON.stringify({
+                    sheet_name: sheetName,
+                    newRow: newRow // Send the new row data as JSON
+                }),
+                success: function (response) {
+                    viewData(); // Refresh the data view
+                },
+                error: function (jqXHR) {
+                    console.error("Error adding row:", jqXHR.responseText);
+                }
+            });
+        }
+
+        function deleteRow(sheetName, index) {
+            console.log("Delete Row Index:", index);
+            $.ajax({
+                url: '/delete_row',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ sheet_name: sheetName, row_index: index }),
+                success: function (response) {
+                    console.log("Row deleted successfully:", response);
+                    viewData();
+                },
+                error: function (jqXHR) {
+                    console.error("Error deleting row:", jqXHR.responseText);
+                }
+            });
+        }
+
+        function createAddColumnForm(sheetName) {
+            const form = $('<div></div>');
+            form.append('<input type="text" id="newColumnName" placeholder="Enter new column name" />');
+            form.append(`<button onclick="addColumn('${sheetName}')">Add Column</button>`);
+            return form;
+        }
+
+        function addColumn(sheetName) {
+            const newColumnName = $('#newColumnName').val();
+            if (!newColumnName) {
+                alert("Please enter a column name.");
+                return;
+            }
+
+            $.ajax({
+                url: '/add_column',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ sheet_name: sheetName, column_name: newColumnName }),
+                success: function (response) {
+                    console.log("Column added successfully:", response);
+                    viewData();
+                },
+                error: function (jqXHR) {
+                    console.error("Error adding column:", jqXHR.responseText);
+                    $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || { "error": "Unknown error" }, null, 2));
+                }
+            });
+        }
+
+        function deleteColumn(sheetName, columnName) {
+            if (confirm(`Are you sure you want to delete the column "${columnName}"?`)) {
+                $.ajax({
+                    url: '/delete_column',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ sheet_name: sheetName, column_name: columnName }),
+                    success: function (response) {
+                        console.log("Column deleted successfully:", response);
+                        viewData();
+                    },
+                    error: function (jqXHR) {
+                        console.error("Error deleting column:", jqXHR.responseText);
+                    }
+                });
+            }
+        }
 
 
 
-       
-function viewData() {
-    if (!uploadedFileName) return alert("Please upload a file first");
-    
-    const formData = new FormData();
-    formData.append('filename', uploadedFileName); 
-    
-    $.ajax({
-        url: '/view_data',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: handleResponse,
-        error: handleError
-    });
-}
 
-        
+        function viewData() {
+            if (!uploadedFileName) return alert("Please upload a file first");
+
+            const formData = new FormData();
+            formData.append('filename', uploadedFileName);
+
+            $.ajax({
+                url: '/view_data',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: handleResponse,
+                error: handleError
+            });
+        }
+
+
 
         function handleError(error) {
-            $('#responseOutput').text(JSON.stringify(error.responseJSON || {"error": "Unknown error"}, null, 2));
+            $('#responseOutput').text(JSON.stringify(error.responseJSON || { "error": "Unknown error" }, null, 2));
         }
 
         function uploadFile() {
@@ -337,14 +364,14 @@ function viewData() {
             if (!fileInput.files.length) return alert("Please select a file");
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
-            
+
             $.ajax({
                 url: '/upload',
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
-                success: function(response) {
+                success: function (response) {
                     handleResponse(response);
                     uploadedFileName = fileInput.files[0].name;
                 },
@@ -353,24 +380,24 @@ function viewData() {
         }
 
         function viewData() {
-    if (!uploadedFileName) return alert("Please upload a file first");
+            if (!uploadedFileName) return alert("Please upload a file first");
 
-    const formData = new FormData();
-    formData.append('filename', uploadedFileName); 
+            const formData = new FormData();
+            formData.append('filename', uploadedFileName);
 
-    $.ajax({
-        url: '/view_data',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: handleResponse,
-        error: handleError
-    });
-}
-        
+            $.ajax({
+                url: '/view_data',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: handleResponse,
+                error: handleError
+            });
+        }
+
         function existingMacros() {
-            $.post('/existing_macros', function(response) {
+            $.post('/existing_macros', function (response) {
                 console.log("Existing Macros:", response);
                 let output = '<h3>Select a Macro to Execute:</h3>';
                 if (response.macros && response.macros.length > 0) {
@@ -383,28 +410,29 @@ function viewData() {
                 $('#responseOutput').html(output);
             }).fail(handleError);
         }
-        
+
         function executeMacro(macroName) {
             if (!macroName) return alert("No macro selected");
-            
+
             $.ajax({
                 url: '/execute_macro',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ macro_name: macroName }),
-                success: function(response) {
+                success: function (response) {
                     handleResponse(response);
                 },
-                error: function(jqXHR) {
+                error: function (jqXHR) {
                     console.error("Error executing macro:", jqXHR.responseText);
-                    $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || {"error": "Unknown error"}, null, 2));
+                    $('#responseOutput').text(JSON.stringify(jqXHR.responseJSON || { "error": "Unknown error" }, null, 2));
                 }
             });
         }
-        
+
         document.getElementById('uploadBtn').onclick = uploadFile;
         document.getElementById('viewDataBtn').onclick = viewData;
         document.getElementById('existingMacrosBtn').onclick = existingMacros;
     </script>
 </body>
+
 </html>

@@ -1,0 +1,7 @@
+
+Convert the formula in string format enclose with '' into python function , considering:
+  - This are excel sheet formula , please take care of input. 
+  - Converted python function will have dataframe and range string as input
+  - Ensure to Check for dependencies and required libraries, adding them at the top of the file.
+  - Ensure proper indentation and syntax.
+  - If conversion fails, log an error message.

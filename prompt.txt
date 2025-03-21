@@ -3,11 +3,12 @@ Convert the VBA script from the Excel file to a Python script. The main objectiv
 ### Class Requirements:
 - Create a Python file with the class name `ConvertedExcelMacros`.
 - Add a constructor that takes a dictionary of DataFrames as an argument and extracts the relevant DataFrame.
-Ensure that the constructor checks for the presence and non-emptiness of the required DataFrames. If any required DataFrame is missing or empty, initialize it with a default structure (e.g., with appropriate columns) and log a warning message.
-- Convert each VBA module into a Python equivalent function, considering:
+- Ensure that the constructor checks for the presence and non-emptiness of the required DataFrames. If any required DataFrame is missing or empty, initialize it with a default structure (e.g., with appropriate columns) and log a warning message.
+- Convert each VBA module enclose with ''' into a Python equivalent function, considering:
   - Ensure to Check for dependencies and required libraries, adding them at the top of the file.
   - Ensure proper indentation and syntax.
   - If conversion fails, log an error message.
+
 
 ### Methods to Implement:
 - `existing_macros()`: It should return a list of existing macro names.

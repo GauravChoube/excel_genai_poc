@@ -7,6 +7,9 @@ from openaiClient import OPENAI_CLIENT
 import pythoncom
 import importlib.util
 import logging
+import openpyxl
+import time
+import xlwings as xw
 
 # Configuration
 CONFIG_PATH = "config.json"
@@ -21,6 +24,102 @@ app = Flask(__name__)
 # Global variables to store DataFrame and VBA macros
 data_frame = None
 vba_macros = None
+
+# def dataframe_to_excel_with_dataframe_formulas(df, output_file, sheet_name="Sheet1", formula_column="formula"):
+#     """
+#     Writes a pandas DataFrame to Excel, handling formulas stored within the DataFrame, and keeping the headers.
+
+#     Args:
+#         df (pd.DataFrame): The DataFrame to write.
+#         output_file (str): The path to the output Excel file.
+#         sheet_name (str): The name of the sheet.
+#         formula_column (str): The name of the column containing formulas (or None if no such column exists).
+#     """
+#     try:
+#         # Create a copy of the dataframe so as not to modify the original.
+#         df_copy = df.copy()
+
+#         # Extract formulas and remove formula column from the copy.
+#         formula_cells = {}
+#         if formula_column in df_copy.columns:
+#             for index, row in df_copy.iterrows():
+#                 formula = row[formula_column]
+#                 if pd.notna(formula) and isinstance(formula, str) and formula.startswith("="):
+#                     col_letter = openpyxl.utils.get_column_letter(df_copy.columns.get_loc(formula_column))
+#                     cell_address = f"{openpyxl.utils.get_column_letter(df_copy.columns.get_loc(formula_column)+1)}{index + 2}"
+#                     formula_cells[cell_address] = formula
+#             df_copy = df_copy.drop(formula_column, axis=1)
+
+#         # Write the DataFrame to Excel (without formula column), keeping headers
+#         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+#             df_copy.to_excel(writer, sheet_name=sheet_name, index=False) #Now write the headers.
+
+#         # Load the workbook and add formulas
+#         workbook = openpyxl.load_workbook(output_file)
+#         sheet = workbook[sheet_name]
+#         for cell_address, formula in formula_cells.items():
+#             sheet[cell_address] = formula
+
+#         # Save the workbook
+#         workbook.save(output_file)
+
+#         print(f"DataFrame written to '{output_file}-{sheet_name}' with DataFrame formulas and headers.")
+
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
+
+def excel_to_excel_with_dataframe_formulas(excel_data, output_file, formula_column="formula"):
+    """
+    Reads an Excel file with multiple sheets, handles formulas stored in DataFrames, and writes to a new Excel file.
+
+    Args:
+        input_file (str): Path to the input Excel file.
+        output_file (str): Path to the output Excel file.
+        formula_column (str): The name of the column containing formulas (or None if no such column exists).
+    """
+    try:
+        # # Read all sheets from the input Excel file
+        # excel_data = pd.read_excel(input_file, sheet_name=None)
+
+        # Create an Excel writer for the output file
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            for sheet_name, df in excel_data.items():
+                # Create a copy of the dataframe so as not to modify the original.
+                df_copy = df.copy()
+
+                # Extract formulas and remove formula column from the copy.
+                formula_cells = {}
+                if formula_column in df_copy.columns:
+                    for index, row in df_copy.iterrows():
+                        formula = row[formula_column]
+                        if pd.notna(formula) and isinstance(formula, str) and formula.startswith("="):
+                            cell_address = f"{openpyxl.utils.get_column_letter(df_copy.columns.get_loc(formula_column)+1)}{index + 2}"
+                            formula_cells[cell_address] = formula
+                    df_copy = df_copy.drop(formula_column, axis=1)
+
+                # Write the DataFrame to the output sheet
+                df_copy.to_excel(writer, sheet_name=sheet_name, index=False)
+
+                # Load the sheet and add formulas
+                workbook = writer.book
+                sheet = workbook[sheet_name]
+                for cell_address, formula in formula_cells.items():
+                    sheet[cell_address] = formula
+        
+         # Force recalculation and save using xlwings
+        app = xw.App(visible=False)  # Run Excel in the background
+        wb = app.books.open(output_file)
+        app.calculate()  # Force recalculation
+        wb.save()
+        wb.close()
+        app.quit()
+
+        print(f"Excel data  copied to '{output_file}' with DataFrame formulas.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
 
 # Function to read the configuration
 def read_config():
@@ -75,7 +174,9 @@ def upload_file():
         try:
             pythoncom.CoInitialize()
             processor = ExcelVBAProcessor(file_path=file_path, openAIClient=openaiClient)
-            data_frame = processor.read_excel_data()  # Store DataFrame
+            data_frame = processor.read_excel_with_formulas_all_sheets()  # Store DataFrame
+            # data_frame = processor.read_excel_data()  # Store DataFrame
+
             logging.info(f"DataFrame created: {data_frame}")  # Log the DataFrame
             logging.info(f"Type of data_frame: {type(data_frame)}") 
             if isinstance(data_frame, dict):
@@ -83,10 +184,12 @@ def upload_file():
                     logging.info(f"DataFrame '{key}' shape: {df.shape}")  # Log the shape of each DataFrame
             else:
                 logging.error("data_frame is not a dictionary.")
+
             vba_macros = processor.extract_vba_macros()  # Store extracted macros
             processor.convert_vba_to_python()
             processor.save_python_class()  # Save the converted macros
             pythoncom.CoUninitialize()
+
             return jsonify({"message": "File uploaded and processed successfully", "file_path": file_path}), 200
         except Exception as e:
             pythoncom.CoUninitialize()
@@ -98,12 +201,32 @@ def view_data():
     global data_frame  # Declare global variable
     if data_frame is None:
         return jsonify({"error": "No data available. Please upload a file first."}), 400
+    tmpExcelFile = "tmpExcel.xlsx"
+    '''
+        Execute the all formula with lastest data.
+        Following the this approach 
+            1. Create excel file with current datafram
+            2. read with open
+    '''  
+    excel_to_excel_with_dataframe_formulas(excel_data=data_frame,output_file=tmpExcelFile)
+
+    updateDf = pd.read_excel(tmpExcelFile,sheet_name=None)
+    if updateDf is None:
+        return jsonify({"error": "Formula execution is failed. Data not updated"}), 400
+    
+    if os.path.exists(tmpExcelFile):
+        os.remove(tmpExcelFile)
+
 
     data = {}
-    for sheet_name in data_frame.keys():
-        data[sheet_name] = data_frame[sheet_name].fillna("N/A").to_dict(orient='records')
+    for sheet_name in updateDf.keys():
+        data[sheet_name] = updateDf[sheet_name].fillna("N/A").to_dict(orient='records')
+
+        logging.info(f"{sheet_name}:\n{updateDf[sheet_name]}\n after N/A")
+        logging.info(f"{sheet_name}:\n{data[sheet_name]}")
     
-    return jsonify({"sheets": list(data_frame.keys()), "data": data}), 200
+    logging.info(f"sheet: {updateDf.keys()} data:{data}")
+    return jsonify({"sheets": list(updateDf.keys()), "data": data}), 200
 
 
 @app.route('/update_row', methods=['POST'])
