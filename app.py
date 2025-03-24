@@ -24,6 +24,7 @@ app = Flask(__name__)
 # Global variables to store DataFrame and VBA macros
 data_frame = None
 vba_macros = None
+data_frame_value_only = None
 
 # def dataframe_to_excel_with_dataframe_formulas(df, output_file, sheet_name="Sheet1", formula_column="formula"):
 #     """
@@ -199,6 +200,7 @@ def upload_file():
 @app.route('/view_data', methods=['POST'])
 def view_data():
     global data_frame  # Declare global variable
+    global data_frame_value_only
     if data_frame is None:
         return jsonify({"error": "No data available. Please upload a file first."}), 400
     tmpExcelFile = "tmpExcel.xlsx"
@@ -217,6 +219,7 @@ def view_data():
     if os.path.exists(tmpExcelFile):
         os.remove(tmpExcelFile)
 
+    data_frame_value_only = updateDf
 
     data = {}
     for sheet_name in updateDf.keys():
@@ -355,7 +358,9 @@ def existing_macros():
 @app.route('/execute_macro', methods=['POST'])
 def execute_macro():
     global data_frame  # Declare global variable
-    if data_frame is None:
+    data_frame_value_only = data_frame
+
+    if data_frame_value_only is None:
         return jsonify({"error": "No data available. Please upload a file first."}), 400
 
     macro_name = request.json.get('macro_name')
@@ -363,16 +368,17 @@ def execute_macro():
         return jsonify({"error": "Macro name is required."}), 400
 
     try:
-        logging.info(f"Type of data_frame before passing: {type(data_frame)}")  # Log the type
-        if isinstance(data_frame, dict):
-            for key, df in data_frame.items():
+        logging.info(f"Type of data_frame before passing: {type(data_frame_value_only)}")  # Log the type
+        if isinstance(data_frame_value_only, dict):
+            for key, df in data_frame_value_only.items():
                 logging.info(f"DataFrame '{key}' shape: {df.shape}")  # Log the shape of each DataFrame
         else:
             logging.error("data_frame is not a dictionary.")
         # Dynamically import the ConvertedExcelMacros class
         converted_macros = importlib.import_module('converted_macros')
-        macro_class = converted_macros.ConvertedExcelMacros(data_frame)  # Use the latest DataFrame
+        macro_class = converted_macros.ConvertedExcelMacros(data_frame_value_only)  # Use the latest DataFrame
         result = macro_class.execute_macro(macro_name)  # Execute the macro
+
         return jsonify(result), 200
     except Exception as e:
         # logging.error(f"Error executing macro '{macro_name}': {e}")

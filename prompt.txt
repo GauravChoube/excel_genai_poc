@@ -8,7 +8,7 @@ Convert the VBA script from the Excel file to a Python script. The main objectiv
   - Ensure to Check for dependencies and required libraries, adding them at the top of the file.
   - Ensure proper indentation and syntax.
   - If conversion fails, log an error message.
-
+  - Converted python function process input dataframe which has excel formula in string format start with '='. Add validation to avoid error of comparison between string and integer.
 
 ### Methods to Implement:
 - `existing_macros()`: It should return a list of existing macro names.
